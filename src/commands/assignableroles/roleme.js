@@ -44,6 +44,6 @@ module.exports = class extends Command {
         if (notAssignable.length) await msg.failure(`Unassignable roles: ${notAssignable.map(r => `<@&${r}>`).join("\n")}`);
         if (alreadyHave.length) await msg.failure(`You already have: ${alreadyHave.map(r => `<@&${r}>`).join("\n")}.`);
         if (added.length) await msg.success(`Successfully added roles: ${added.map(r => `<@&${r}>`).join("\n")}`);
-        if (toAdd.size) await msg.member.addRoles(toAdd, "roleme command");
+        if (toAdd.size) await msg.member.roles.add(toAdd, "roleme command");
     }
 };

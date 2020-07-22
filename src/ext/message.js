@@ -11,4 +11,16 @@ module.exports = () => {
         if (typeof(descriptionOrData) == "string") descriptionOrData = {description: descriptionOrData};
         return await this.embed(Object.assign({}, descriptionOrData, {color: Constants.Colors.FAILURE}));
     };
+
+    CommandoMessage.prototype.info = async function(descriptionOrData) {
+        if (typeof(descriptionOrData) == "string") descriptionOrData = {description: descriptionOrData};
+        return await this.embed(Object.assign({}, descriptionOrData, {color: Constants.Colors.INFO}));
+    };
+
+    CommandoMessage.prototype.warning = async function(descriptionOrData) {
+        if (typeof(descriptionOrData) == "string") descriptionOrData = {description: descriptionOrData};
+        return await this.embed(Object.assign({}, descriptionOrData, {color: Constants.Colors.WARNING}));
+    };
+
+    CommandoMessage.prototype.warn = CommandoMessage.prototype.warning;
 };
