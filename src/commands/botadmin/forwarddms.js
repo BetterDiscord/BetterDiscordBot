@@ -14,12 +14,12 @@ module.exports = class extends Command {
     }
 
     onMessage(message) {
-         // Ignore guild messages or messages from owner
+        // Ignore guild messages or messages from owner
         if (message.guild || this.client.isOwner(message.author)) return;
 
         // Ignore commands or responses to prompts
         if (!this.client.dispatcher.shouldHandleMessage(message)) return;
-        if (this.client.dispatcher.parseMessage(message)) return;
+        //if (this.client.dispatcher.parseMessage(message)) return;
 
         // Check if it should be forwarded
         const shouldForward = this.client.settings.get("forwarddms", true);
@@ -27,7 +27,7 @@ module.exports = class extends Command {
         
         const owner = this.client.owners[0];
         const embed = new MessageEmbed();
-        embed.setAuthor(message.author.tag, message.author.displayAvatarURL());
+        embed.setAuthor(`${message.author.tag} (${message.author.id})`, message.author.displayAvatarURL());
         embed.setDescription(message.content);
         message.attachments.each((att, id) => {
             embed.addField(`${att.name} (${id})`, `[${att.url}](${att.url})`);

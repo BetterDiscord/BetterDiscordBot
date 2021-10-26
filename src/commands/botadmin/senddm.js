@@ -15,7 +15,7 @@ module.exports = class extends Command {
     }
     
     async run(msg, [id, message]) {
-        const user = this.client.users.cache.get(id);
+        const user = await this.client.users.fetch(id);
         if (!user) return await msg.failure(`Could not find user with ID \`${id}\``);
         try {
             await user.send(message);

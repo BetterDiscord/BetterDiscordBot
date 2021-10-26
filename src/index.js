@@ -28,9 +28,7 @@ const client = new Commando.Client({
 client.registry.registerGroups([
     ["botadmin", "Bot Admin"],
     ["meta", "Meta"],
-    ["assignableroles", "Assignable Roles"],
     ["moderation", "Moderation"],
-    ["reactions", "Auto Reactions"]
 ]);
 
 client.registry.registerDefaultTypes();
