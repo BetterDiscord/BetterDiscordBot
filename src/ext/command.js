@@ -15,7 +15,7 @@ class CommandExt extends Commando.Command {
     constructor(client, info) {
         if (info && info.args) {
             for (const arg of info.args) {
-                if (!arg.hasOwnProperty("defaultValue")) continue;
+                if (!Object.prototype.hasOwnProperty.call(arg, ["defaultValue"])) continue;
                 arg.default = arg.defaultValue;
                 delete arg.defaultValue;
             }

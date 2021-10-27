@@ -18,6 +18,7 @@ module.exports = class extends Command {
         if (!normalized.length) normalized = "stupid name";
         if (current === normalized) return; // Current name is fine
         try {await member.setNickname(normalized);}
+        // eslint-disable-next-line no-empty
         catch (err) {}
     }
     
