@@ -14,13 +14,7 @@ const client = new Commando.Client({
     owner: config.owner,
     fetchAllMembers: config.fetchAllMembers || false,
     description: config.description,
-    invite: config.invite,
-    presence: {
-        status: "online",
-        activity: {
-            name: `${config.defaultPrefix}help for help`
-        }
-    }
+    invite: config.invite
 });
 
 

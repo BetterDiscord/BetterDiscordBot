@@ -1,7 +1,8 @@
 const {MessageEmbed} = require("discord.js");
 const {Command} = require("discord.js-commando");
 
-const fakeDiscordRegex = new RegExp(`([a-zA-Z-\\.]+)?d[il]scor(cl|[db])([a-zA-Z-\\.]+)?\\.(com|net|app|gift|ru)`, "ig");
+const fakeDiscordRegex = new RegExp(`([a-zA-Z-\\.]+)?d[il][il]?scorr?(cl|[ldb])([a-zA-Z-\\.]+)?\\.(com|net|app|gift|ru|uk)`, "ig");
+const okayDiscordRegex = new RegExp(`([a-zA-Z-\\.]+\\.)?discord(app)?\\.(com|net|app)`, "i");
 const fakeSteamRegex = new RegExp(`str?e[ea]?mcomm?m?un[un]?[un]?[tl]?[il][tl]?ty\\.(com|net|ru|us)`, "ig");
 const sketchyRuRegex = new RegExp(`([a-zA-Z-\\.]+).ru.com`, "ig");
 
@@ -28,14 +29,18 @@ module.exports = class extends Command {
         if (!message.guild || this.client.isOwner(message.author)) return;
 
         // MANAGE_MESSAGES can bypass this detection
-        if (!message.channel.permissionsFor(message.author).has(["MANAGE_MESSAGES"])) return;
+        if (message.channel.permissionsFor(message.author).has(["MANAGE_MESSAGES"])) return;
 
         // console.log(message.content.match(fakeDiscordRegex));
         // console.log(message.content.match(fakeSteamRegex));
 
         const fakeDiscordMatches = message.content.match(fakeDiscordRegex) || [];
         const fakeSteamMatches = message.content.match(fakeSteamRegex) || [];
-        const isFakeDiscord = fakeDiscordMatches.some(s => s.toLowerCase() !== "discord.com");
+        const isFakeDiscord = fakeDiscordMatches.some(s => {
+            if (okayDiscordRegex.test(s)) return false;
+            else if (s.toLowerCase()  === "betterdiscord.app") return false;
+            return true;
+        });
         const isFakeSteam = fakeSteamMatches.some(s => s.toLowerCase() !== "steamcommunity.com");
         const isSketchy = sketchyRuRegex.test(message.content);
         if (!isFakeDiscord && !isFakeSteam && !isSketchy) return; // Not spam, let's get out of here
