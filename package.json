@@ -17,7 +17,8 @@
     "erlpack": "github:discordapp/erlpack",
     "node-opus": "^0.3.3",
     "sodium": "^3.0.2",
-    "sqlite": "^3.0.6",
+    "sqlite": "^4.0.23",
+    "sqlite3": "git+https://github.com/mapbox/node-sqlite3.git",
     "utf-8-validate": "^5.0.2"
   }
 }

@@ -29,6 +29,8 @@ module.exports = class extends Command {
         if (!message.guild || this.client.isOwner(message.author)) return;
 
         // MANAGE_MESSAGES can bypass this detection
+        if (!message.author) {console.error(message); return;}
+        if (!message.channel.permissionFor(message.author)) {console.error(message.author); return;}
         if (message.channel.permissionsFor(message.author).has(["MANAGE_MESSAGES"])) return;
 
         // console.log(message.content.match(fakeDiscordRegex));
