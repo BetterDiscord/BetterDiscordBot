@@ -5,13 +5,15 @@
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/index.js"
+    "start": "node --require dotenv/config src/index.js",
+    "deploy": "node --require dotenv/config scripts/deploy-commands.js",
+    "validate": "node --require dotenv/config scripts/validate-env.js"
   },
   "repository": "",
   "author": "Zack Rauen",
   "license": "MIT",
   "dependencies": {
-    "@discordjs/rest": "^2.3.0",
+    "@discordjs/core": "^1.2.0",
     "@keyv/sqlite": "^3.6.7",
     "bufferutil": "^4.0.8",
     "discord.js": "^14.15.2",
