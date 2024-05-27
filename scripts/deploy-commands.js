@@ -25,8 +25,8 @@ api.applicationCommands.bulkOverwriteGlobalCommands(process.env.BOT_CLIENT_ID, c
     .then(result => console.log(`Successfully registered ${result.length} application commands.`))
     .catch(console.error);
 
-if (ownerCommands.length && process.env.BOT_GUILD_ID) {
+if (process.env.BOT_GUILD_ID) {
     api.applicationCommands.bulkOverwriteGuildCommands(process.env.BOT_CLIENT_ID, process.env.BOT_GUILD_ID, ownerCommands)
-        .then(() => console.log("Successfully registered guild commands."))
+        .then(result => console.log(`Successfully registered ${result.length} guild commands.`))
         .catch(console.error);
 }
