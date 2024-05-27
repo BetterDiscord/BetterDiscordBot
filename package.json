@@ -11,14 +11,17 @@
   "author": "Zack Rauen",
   "license": "MIT",
   "dependencies": {
-    "bufferutil": "^4.0.1",
-    "discord.js": "^12.2.0",
-    "discord.js-commando": "github:discordjs/Commando",
-    "erlpack": "github:discordapp/erlpack",
-    "node-opus": "^0.3.3",
-    "sodium": "^3.0.2",
-    "sqlite": "^4.0.23",
-    "sqlite3": "git+https://github.com/mapbox/node-sqlite3.git",
-    "utf-8-validate": "^5.0.2"
+    "@discordjs/rest": "^2.3.0",
+    "@keyv/sqlite": "^3.6.7",
+    "bufferutil": "^4.0.8",
+    "discord.js": "^14.15.2",
+    "dotenv": "^16.4.5",
+    "keyv": "^4.5.4",
+    "utf-8-validate": "^6.0.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.3.0",
+    "eslint": "^9.3.0",
+    "globals": "^15.3.0"
   }
 }

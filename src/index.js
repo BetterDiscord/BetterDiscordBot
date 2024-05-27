@@ -6,16 +6,15 @@ Extensions.addAll();
 
 
 const Commando = require("discord.js-commando");
-const config = require("../config");
 
 
 
 const client = new Commando.Client({
-    commandPrefix: config.defaultPrefix,
-    owner: config.owner,
-    fetchAllMembers: config.fetchAllMembers || false,
-    description: config.description,
-    invite: config.invite
+    commandPrefix: process.env.BOT_PREFIX,
+    owner: process.env.BOT_OWNER_ID,
+    fetchAllMembers: process.env.BOT_FETCH_MEMBERS || false,
+    description: process.env.BOT_DESCRIPTION,
+    invite: process.env.BOT_INVITE
 });
 
 
@@ -41,4 +40,4 @@ client.registry.registerCommandsIn(path.join(__dirname, "commands"));
 
 client.setProvider(sqlite.open({driver: sqlite3.Database, filename: path.join(__dirname, "..", "settings.sqlite3")}).then(db => new Commando.SQLiteProvider(db))).catch(console.error);
 
-client.login(config.token);
+client.login(process.env.BOT_TOKEN);
