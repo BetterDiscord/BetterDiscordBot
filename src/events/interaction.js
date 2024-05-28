@@ -26,6 +26,14 @@ module.exports = {
             executor = "modal";
             commandName = interaction.customId.split("-")[0];
         }
+        else if (interaction.isStringSelectMenu()) {
+            executor = "select";
+            commandName = interaction.customId.split("-")[0];
+        }
+        else if (interaction.isRoleSelectMenu()) {
+            executor = "role";
+            commandName = interaction.customId.split("-")[0];
+        }
 
         const command = interaction.client.commands.get(commandName);
         if (!command || !command[executor]) {
