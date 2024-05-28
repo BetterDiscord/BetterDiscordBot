@@ -1,4 +1,4 @@
-const {SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder} = require("discord.js");
+const {SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, RoleSelectMenuBuilder} = require("discord.js");
 const {humanReadableUptime} = require("../util/time");
 const path = require("path");
 const Keyv = require("keyv");
@@ -28,7 +28,6 @@ module.exports = {
                     .setDescription("Whose display name should be cleaned?")
                     .setRequired(true)))
         .addSubcommand(c => c.setName("server").setDescription("Fixes all display names in the server.")),
-        // .setType(ApplicationCommandType.User),
 
     /** 
      * @param {import("discord.js").CommandInteraction} interaction
@@ -41,12 +40,23 @@ module.exports = {
     },
 
 
-    // TODO: remove owner check and add intermediate that allow multi-select role dropdown for ignoring
     /** 
      * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async server(interaction) {
-        if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(Messages.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
+        const controls = new ActionRowBuilder().addComponents(
+            new RoleSelectMenuBuilder().setCustomId("cleanname").setMinValues(0).setMaxValues(25).setDefaultRoles(interaction.guild.roles.highest.id)
+        );
+        await interaction.reply(Messages.info("Please select which roles should bypass this cleaning.", {components: [controls]}));
+    },
+
+
+    /** 
+     * @param {import("discord.js").RoleSelectMenuInteraction} interaction
+     */
+    async role(interaction) {
+        const roleIds = [...interaction.roles.keys()];
+
         const start = Date.now();
         
         const infoEmbed = new EmbedBuilder();
@@ -61,18 +71,21 @@ module.exports = {
             {name: "Failed", value: "0", inline: true},
         );
 
-        await interaction.reply({embeds: [infoEmbed]});
+        await interaction.update({embeds: [infoEmbed], components: []});
 
         let changed = 0;
         let failed = 0;
         await interaction.guild.members.fetch();
         const members = interaction.guild.members.cache;
         for (const [, member] of members) {
+            // If their name is fine continue
             if (!weirdCharsRegex.test(member.displayName)) continue;
 
+            // If they have a role that was selected as a bypass role, continue
+            if (member.roles.cache.hasAny(...roleIds)) continue;
+
             try {
-                //await member.setNickname(member.user.username);
-                console.log(member.displayName);
+                await member.setNickname(member.user.username);
                 changed++;
             }
             catch {
@@ -94,7 +107,7 @@ module.exports = {
         infoEmbed.setFooter({text: "Completed at"});
         infoEmbed.setTimestamp(finish);
 
-        await interaction.editReply({embeds: [infoEmbed]});
+        await interaction.update({embeds: [infoEmbed]});
     },
 
 
