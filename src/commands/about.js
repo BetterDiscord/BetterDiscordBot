@@ -8,6 +8,7 @@ const stats = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settin
 
 const {SlashCommandBuilder, EmbedBuilder, ChannelType} = require("discord.js");
 const {humanReadableUptime} = require("../util/time");
+const Colors = require("../util/colors");
 
 
 module.exports = {
@@ -22,7 +23,7 @@ module.exports = {
         await interaction.deferReply();
         const aboutEmbed = new EmbedBuilder();
 
-        aboutEmbed.setColor("Blue");
+        aboutEmbed.setColor(Colors.Info);
         aboutEmbed.setAuthor({name: interaction.client.user.username, iconURL: interaction.client.user.displayAvatarURL()});
         // TODO: I think it's overkill but re-evaluate later
         // aboutEmbed.setImage(interaction.client.user.bannerURL());

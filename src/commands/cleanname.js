@@ -2,6 +2,7 @@ const {SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder} = require("discor
 const {humanReadableUptime} = require("../util/time");
 const path = require("path");
 const Keyv = require("keyv");
+const Colors = require("../util/colors");
 const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "settings"});
 
 
@@ -48,7 +49,7 @@ module.exports = {
         const start = Date.now();
         
         const infoEmbed = new EmbedBuilder();
-        infoEmbed.setColor("#5A88CE");
+        infoEmbed.setColor(Colors.Info);
         infoEmbed.setTitle("Fixing Display Names");
         infoEmbed.setDescription(`This will take approximately ${humanReadableUptime(interaction.guild.memberCount * 10)}. Please be patient.`);
         infoEmbed.setFooter({text: "Started at"});
@@ -88,7 +89,7 @@ module.exports = {
         );
 
         infoEmbed.setDescription(`Operation took ${humanReadableUptime(finish - start)}. Thank you for waiting.`);
-        infoEmbed.setColor("#3ac172");
+        infoEmbed.setColor(Colors.Success);
         infoEmbed.setFooter({text: "Completed at"});
         infoEmbed.setTimestamp(finish);
 
@@ -103,13 +104,13 @@ module.exports = {
         const targetUser = interaction.options.getUser("user");
         const member = interaction.guild.members.cache.get(targetUser.id);
         const isClean = !weirdCharsRegex.test(member.displayName);
-        if (isClean) return await interaction.reply({embeds: [new EmbedBuilder().setColor("#5A88CE").setDescription("This member's display name already conforms to the username standards.")]});
+        if (isClean) return await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Info).setDescription("This member's display name already conforms to the username standards.")]});
         try {
             await member.setNickname(member.user.username);
-            await interaction.reply({embeds: [new EmbedBuilder().setColor("#3ac172").setDescription("Successfully cleaned this member's display name.")]});
+            await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Success).setDescription("Successfully cleaned this member's display name.")]});
         }
         catch {
-            await interaction.reply({embeds: [new EmbedBuilder().setColor("#c13a3a").setDescription("Could not clean this member's display name. Double check that I have permission to do so.")]});
+            await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Error).setDescription("Could not clean this member's display name. Double check that I have permission to do so.")]});
         }
     },
 
@@ -121,9 +122,9 @@ module.exports = {
         const toEnable = interaction.options.getBoolean("enabled");
         const guildSettings = await settings.get(interaction.guild.id) ?? {};
         const current = guildSettings.cleanOnJoin;
-        if (current === toEnable) return await interaction.reply({embeds: [new EmbedBuilder().setColor("#5A88CE").setDescription(`This setting was already ${current ? "enabled" : "disabled"}.`)]});
+        if (current === toEnable) return await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Info).setDescription(`This setting was already ${current ? "enabled" : "disabled"}.`)]});
         guildSettings.cleanOnJoin = toEnable;
         await settings.set(interaction.guild.id, guildSettings);
-        await interaction.reply({embeds: [new EmbedBuilder().setColor("#3ac172").setDescription(`This setting is now ${toEnable ? "enabled" : "disabled"}.`)]});
+        await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Success).setDescription(`This setting is now ${toEnable ? "enabled" : "disabled"}.`)]});
     },
 };
