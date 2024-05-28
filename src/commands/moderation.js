@@ -18,6 +18,12 @@ module.exports = {
                 )
         )
         .addSubcommand(
+            c => c.setName("detectspam").setDescription("Toggles the spam detection module.")
+                .addBooleanOption(opt =>
+                    opt.setName("enable").setDescription("Enable or disable").setRequired(false)
+                )
+        )
+        .addSubcommand(
             c => c.setName("modlog").setDescription("Sets a channel to log bot moderation actions.")
                 .addChannelOption(opt =>
                     opt.setName("channel").setDescription("Where to log my actions?").setRequired(false)
@@ -25,9 +31,10 @@ module.exports = {
                 )
         )
         .addSubcommand(
-            c => c.setName("detectspam").setDescription("Toggles the spam detection module.")
-                .addBooleanOption(opt =>
-                    opt.setName("enable").setDescription("Enable or disable").setRequired(false)
+            c => c.setName("joinleave").setDescription("Sets a channel to log join/leave messages.")
+                .addChannelOption(opt =>
+                    opt.setName("channel").setDescription("Where to log join/leave messages?").setRequired(false)
+                    .addChannelTypes(ChannelType.GuildText)
                 )
         ),
 
@@ -39,6 +46,7 @@ module.exports = {
         if (command === "invitefilter") return await this.invitefilter(interaction);
         if (command === "detectspam") return await this.detectspam(interaction);
         if (command === "modlog") return await this.modlog(interaction);
+        if (command === "joinleave") return await this.joinleave(interaction);
     },
 
 
@@ -74,6 +82,7 @@ module.exports = {
 
 
     /** 
+     * TODO: de-dup with joinleave
      * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async modlog(interaction) {
@@ -88,5 +97,23 @@ module.exports = {
             await settings.set(interaction.guild.id, current);
         }
         await interaction.reply(Messages.success(targetChannel ? `Modlog set to <#${targetChannel.id}>!` : "Modlog has been unset!", {ephemeral: true}));
+    },
+
+
+    /** 
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
+     */
+    async joinleave(interaction) {
+        const targetChannel = interaction.options.getChannel("channel");
+        const current = await settings.get(interaction.guild.id) ?? {};
+        if (targetChannel) {
+            current.joinleave = targetChannel.id;
+            await settings.set(interaction.guild.id, current);
+        }
+        else {
+            delete current.joinleave;
+            await settings.set(interaction.guild.id, current);
+        }
+        await interaction.reply(Messages.success(targetChannel ? `Join/leave set to <#${targetChannel.id}>!` : "Join/leave has been unset!", {ephemeral: true}));
     },
 };
