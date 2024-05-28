@@ -20,6 +20,7 @@ module.exports = {
     async execute(message) {
         // Ignore DM messages and owner messages and people with manage messages perms
         if (!message.inGuild() || message.author.id === process.env.BOT_OWNER_ID) return;
+        if (message.author.id === message.client.user.id) return;
         if (message.channel.permissionsFor(message.author)?.has(PermissionFlagsBits.ManageMessages)) return;
 
         // Obviously if this is disabled we don't need to do this stuff either

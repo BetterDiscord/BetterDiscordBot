@@ -2,7 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 // Require the necessary discord.js classes
-const {Client, Collection, GatewayIntentBits, ActivityType} = require("discord.js");
+const {Client, Collection, GatewayIntentBits, ActivityType, Partials} = require("discord.js");
 
 
 // Create a new client instance
@@ -12,7 +12,11 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildVoiceStates
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.DirectMessages
+    ],
+    partials: [
+        Partials.Channel
     ],
     presence: {activities: [{name: "for spam", type: ActivityType.Watching}]}
 });

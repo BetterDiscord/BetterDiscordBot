@@ -8,24 +8,25 @@ module.exports = {
     name: Events.MessageCreate,
 
     /** 
-     * @param {import("discord.js").Message} msg
+     * @param {import("discord.js").Message} message
      */
-    async execute(msg) {
+    async execute(message) {
         // Ignore guild messages and owner DMs
-        if (msg.inGuild()) return;
-        if (msg.author.id === process.env.BOT_OWNER_ID) return;
+        if (message.inGuild() || message.author.bot) return;
+        if (message.author.id === message.client.user.id) return;
+        if (message.author.id === process.env.BOT_OWNER_ID) return;
         const target = await settings.get("forwarding") ?? "";
         if (!target) return;
-        const user = msg.client.users.cache.get(target);
+        const user = message.client.users.cache.get(target);
         if (!user) return;
 
         const embed = new EmbedBuilder()
-            .setAuthor({name: `${msg.author.displayName} (${msg.author.id})`, iconURL: msg.author.displayAvatarURL()})
-            .setDescription(msg.content);
+            .setAuthor({name: `${message.author.displayName} (${message.author.id})`, iconURL: message.author.displayAvatarURL()})
+            .setDescription(message.content ?? "\u200B");
         
-        if (msg.attachments.size) {
-            for (const [id, att] of msg.attachments) {
-                embed.addFields({name: `${att.name} (${id})`, value: `[${att.url}](${att.url})`});
+        if (message.attachments.size) {
+            for (const [id, att] of message.attachments) {
+                embed.addFields({name: att.name, value: `[${id}](${att.url})`});
             }
         }
 
