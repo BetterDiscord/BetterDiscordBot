@@ -1,4 +1,4 @@
-const {SlashCommandBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle} = require("discord.js");
+const {SlashCommandBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, ChannelType} = require("discord.js");
 const path = require("path");
 const Keyv = require("keyv");
 const Messages = require("../util/messages");
@@ -22,6 +22,7 @@ module.exports = {
                     c.setName("channel").setDescription("Sends a message to the specified channel.")
                         .addChannelOption(opt => 
                             opt.setName("channel").setDescription("Channel to send a message.").setRequired(true)
+                            .addChannelTypes(ChannelType.GuildText)
                         )
                 )
         )

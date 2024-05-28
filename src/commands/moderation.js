@@ -1,4 +1,4 @@
-const {SlashCommandBuilder, PermissionFlagsBits} = require("discord.js");
+const {SlashCommandBuilder, PermissionFlagsBits, ChannelType} = require("discord.js");
 const path = require("path");
 const Keyv = require("keyv");
 const Messages = require("../util/messages");
@@ -21,6 +21,7 @@ module.exports = {
             c => c.setName("modlog").setDescription("Sets a channel to log bot moderation actions.")
                 .addChannelOption(opt =>
                     opt.setName("channel").setDescription("Where to log my actions?").setRequired(false)
+                    .addChannelTypes(ChannelType.GuildText)
                 )
         )
         .addSubcommand(
@@ -48,7 +49,7 @@ module.exports = {
     async invitefilter(interaction) {
         const toEnable = interaction.options.getBoolean("enable");
         const current = await settings.get(interaction.guild.id) ?? {};
-        if (typeof(toEnable) === "undefined") return await interaction.reply(Messages.info(`This module is currently ${current.invitefilter ? "enabled" : "disabled"}.`, {ephemeral: true}));
+        if (toEnable === null) return await interaction.reply(Messages.info(`This module is currently ${current.invitefilter ? "enabled" : "disabled"}.`, {ephemeral: true}));
 
         current.invitefilter = toEnable;
         await settings.set(interaction.guild.id, current);
@@ -63,7 +64,7 @@ module.exports = {
     async detectspam(interaction) {
         const toEnable = interaction.options.getBoolean("enable");
         const current = await settings.get(interaction.guild.id) ?? {};
-        if (typeof(toEnable) === "undefined") return await interaction.reply(Messages.info(`This module is currently ${current.detectspam ? "enabled" : "disabled"}.`, {ephemeral: true}));
+        if (toEnable === null) return await interaction.reply(Messages.info(`This module is currently ${current.detectspam ? "enabled" : "disabled"}.`, {ephemeral: true}));
 
         current.detectspam = toEnable;
         await settings.set(interaction.guild.id, current);
