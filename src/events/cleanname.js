@@ -11,7 +11,7 @@ module.exports = {
     name: Events.GuildMemberAdd,
 
     /** 
-     * @param member {import("discord.js").GuildMember}
+     * @param {import("discord.js").GuildMember} member
      */
     async execute(member) {
         if (!weirdCharsRegex.test(member.displayName)) return; // TODO: maybe log?

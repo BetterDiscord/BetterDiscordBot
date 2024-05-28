@@ -31,7 +31,7 @@ module.exports = {
         // .setType(ApplicationCommandType.User),
 
     /** 
-     * @param interaction {import("discord.js").CommandInteraction}
+     * @param {import("discord.js").CommandInteraction} interaction
      */
     async execute(interaction) {
         const command = interaction.options.getSubcommand();
@@ -43,7 +43,7 @@ module.exports = {
 
     // TODO: remove owner check and add intermediate that allow multi-select role dropdown for ignoring
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async server(interaction) {
         if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(Messages.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
@@ -99,7 +99,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async user(interaction) {
         const targetUser = interaction.options.getUser("user");
@@ -117,7 +117,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async join(interaction) {
         const toEnable = interaction.options.getBoolean("enabled");

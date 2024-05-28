@@ -8,7 +8,7 @@ module.exports = {
     name: Events.MessageCreate,
 
     /** 
-     * @param msg {import("discord.js").Message}
+     * @param {import("discord.js").Message} msg
      */
     async execute(msg) {
         // Ignore guild messages and owner DMs

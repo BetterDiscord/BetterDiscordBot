@@ -13,7 +13,7 @@ module.exports = {
         .setDMPermission(false),
 
     /** 
-     * @param interaction {import("discord.js").CommandInteraction}
+     * @param {import("discord.js").CommandInteraction} interaction
      */
     async execute(interaction) {
         const selfroles = await settings.get(interaction.guild.id) ?? [];
@@ -36,7 +36,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ButtonInteraction}
+     * @param {import("discord.js").ButtonInteraction} interaction
      */
     async button(interaction) {
         const id = interaction.customId.split("-")[1];
@@ -46,7 +46,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ButtonInteraction}
+     * @param {import("discord.js").ButtonInteraction} interaction
      */
     async buttonUser(interaction) {
         const member = interaction.guild.members.cache.get(interaction.user.id);
@@ -68,7 +68,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").StringSelectMenuInteraction}
+     * @param {import("discord.js").StringSelectMenuInteraction} interaction
      */
     async select(interaction) {
         const member = interaction.guild.members.cache.get(interaction.user.id);
@@ -89,7 +89,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ButtonInteraction}
+     * @param {import("discord.js").ButtonInteraction} interaction
      */
     async buttonAdmin(interaction) {
         const defaultRoles = await settings.get(interaction.guild.id) ?? [];
@@ -101,7 +101,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").RoleSelectMenuInteraction}
+     * @param {import("discord.js").RoleSelectMenuInteraction} interaction
      */
     async role(interaction) {
         await settings.set(interaction.guild.id, [...interaction.roles.keys()]);

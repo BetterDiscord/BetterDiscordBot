@@ -34,7 +34,7 @@ module.exports = {
         .addSubcommand(c => c.setName("quit").setDescription("Exits the bot gracefully.")),
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async execute(interaction) {
         if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(Messages.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
@@ -51,7 +51,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async channel(interaction) {
         return await this.send(interaction, interaction.options.getChannel("channel", true));
@@ -59,7 +59,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async user(interaction) {
         return await this.send(interaction, interaction.options.getUser("user", true));
@@ -67,8 +67,8 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
-     * @param target {import("discord.js").PartialTextBasedChannelFields}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
+     * @param {import("discord.js").PartialTextBasedChannelFields} target
      */
     async send(interaction, target) {
         const modal = new ModalBuilder().setTitle("Message To Send").setCustomId("botadmin-send")
@@ -107,7 +107,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async forwarding(interaction) {
         const targetUser = interaction.options.getUser("user");
@@ -118,7 +118,7 @@ module.exports = {
 
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async quit(interaction) {
         await interaction.reply(Messages.info("Bot shutting down...", {ephemeral: true}));

@@ -17,7 +17,7 @@ module.exports = {
         .setDescription("Gives some information about the bot"),
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async execute(interaction) {
         await interaction.deferReply();

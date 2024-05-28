@@ -6,7 +6,7 @@ module.exports = {
     name: "interactionCreate",
 
     /** 
-     * @param interaction {import("discord.js").CommandInteraction}
+     * @param {import("discord.js").CommandInteraction} interaction
      */
     async execute(interaction) {
         let commandName = interaction.commandName;
@@ -51,7 +51,7 @@ module.exports = {
     },
 
     /** 
-     * @param interaction {import("discord.js").ChatInputCommandInteraction}
+     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
     async addStat(interaction) {
         const key = interaction.guildId ?? interaction.client.user.id;
