@@ -1,7 +1,7 @@
-const {SlashCommandBuilder, EmbedBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle} = require("discord.js");
+const {SlashCommandBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle} = require("discord.js");
 const path = require("path");
 const Keyv = require("keyv");
-const Colors = require("../util/colors");
+const Messages = require("../util/messages");
 const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "global"});
 
 
@@ -37,7 +37,7 @@ module.exports = {
      * @param interaction {import("discord.js").ChatInputCommandInteraction}
      */
     async execute(interaction) {
-        if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply({content: "Sorry this command is only usable by the owner!", ephemeral: true});
+        if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(Messages.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
 
         const group = interaction.options.getSubcommandGroup();
         const command = interaction.options.getSubcommand();
@@ -75,13 +75,9 @@ module.exports = {
             .addComponents(
                 new ActionRowBuilder()
                     .addComponents(
-                        new TextInputBuilder()
-                            .setCustomId("message")
-                            .setLabel("Message")
-                            .setStyle(TextInputStyle.Paragraph)
-                            .setRequired(true)
-                            .setMaxLength(2000)
-                            .setValue("")
+                        new TextInputBuilder().setCustomId("message").setLabel("Message")
+                            .setStyle(TextInputStyle.Paragraph).setRequired(true)
+                            .setMaxLength(2000).setValue("")
                     )
                 );
 
@@ -93,14 +89,14 @@ module.exports = {
             const message = modalInteraction.fields.getTextInputValue("message");
             try {
                 await target.send(message);
-                await modalInteraction.reply({embeds: [new EmbedBuilder().setColor(Colors.Success).setDescription("Message sent successfully!")], ephemeral: true});
+                await modalInteraction.reply(Messages.success("Message sent successfully!", {ephemeral: true}));
             }
             catch {
-                await modalInteraction.reply({embeds: [new EmbedBuilder().setColor(Colors.Error).setDescription("Could not send message!")], ephemeral: true});
+                await modalInteraction.reply(Messages.error("Could not send message!", {ephemeral: true}));
             }
         }
         catch {
-            await interaction.followUp({embeds: [new EmbedBuilder().setColor(Colors.Error).setDescription("Modal submission timed out!")], ephemeral: true});
+            await interaction.followUp(Messages.error("Modal submission timed out!", {ephemeral: true}));
         }
     },
 
@@ -117,7 +113,7 @@ module.exports = {
         const targetUser = interaction.options.getUser("user");
         if (targetUser) await settings.set("forwarding", targetUser.id);
         else await settings.delete("forwarding");
-        await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Success).setDescription(targetUser ? `Now forwarding DMs to <@${targetUser.id}>!` : "No longer forwarding DMs!")], ephemeral: true});
+        await interaction.reply(Messages.success(targetUser ? `Now forwarding DMs to <@${targetUser.id}>!` : "No longer forwarding DMs!", {ephemeral: true}));
     },
 
 
@@ -125,7 +121,7 @@ module.exports = {
      * @param interaction {import("discord.js").ChatInputCommandInteraction}
      */
     async quit(interaction) {
-        await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Info).setDescription("Bot shutting down...")], ephemeral: true});
+        await interaction.reply(Messages.info("Bot shutting down...", {ephemeral: true}));
         await interaction.client.destroy();
         process.exit(0);
     },

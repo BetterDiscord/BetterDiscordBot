@@ -2,6 +2,7 @@ const {SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder,
 const path = require("path");
 const Keyv = require("keyv");
 const Colors = require("../util/colors");
+const Messages = require("../util/messages");
 const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "selfroles"});
 
 
@@ -16,9 +17,7 @@ module.exports = {
      */
     async execute(interaction) {
         const selfroles = await settings.get(interaction.guild.id) ?? [];
-        const listingEmbed = new EmbedBuilder()
-            .setColor(Colors.Info)
-            .setTitle("Available Roles")
+        const listingEmbed = new EmbedBuilder().setColor(Colors.Info).setTitle("Available Roles")
             .setDescription(selfroles.length ? selfroles.map(r => `- <@&${r}>`).join("\n") : "No roles have been configured by the admins.");
 
         const controls = new ActionRowBuilder().addComponents(
@@ -63,10 +62,8 @@ module.exports = {
                     .setDefault(member.roles.cache.has(roleId))
             ))
         );
-        await interaction.update({
-            embeds: [new EmbedBuilder().setColor(Colors.Info).setDescription("Please select which roles you want.")],
-            components: [controls]
-        });
+
+        await interaction.update(Messages.info("Please select which roles you want.", {components: [controls]}));
     },
 
 
@@ -79,10 +76,10 @@ module.exports = {
         try {
             if (assignable.length) await member.roles.remove(assignable);
             if (interaction.values.length) await member.roles.add(interaction.values);
-            await interaction.update({embeds: [new EmbedBuilder().setColor(Colors.Success).setDescription("Successfully assigned your roles!")], components: []});
+            await interaction.update(Messages.success("Successfully assigned your roles!", {components: []}));
         }
         catch {
-            await interaction.update({embeds: [new EmbedBuilder().setColor(Colors.Error).setDescription("Could not assign your roles. It may be a permission issue.")]});
+            await interaction.update(Messages.error("Could not assign your roles. It may be a permission issue."));
         }
 
         // Restart the flow
@@ -99,10 +96,7 @@ module.exports = {
         const controls = new ActionRowBuilder().addComponents(
             new RoleSelectMenuBuilder().setCustomId("selfroles").setMaxValues(25).setDefaultRoles(defaultRoles)
         );
-        await interaction.update({
-            embeds: [new EmbedBuilder().setColor(Colors.Info).setDescription("Please select which roles should be self-assignable.")],
-            components: [controls],
-        });
+        await interaction.update(Messages.info("Please select which roles should be self-assignable.", {components: [controls]}));
     },
 
 
@@ -111,7 +105,7 @@ module.exports = {
      */
     async role(interaction) {
         await settings.set(interaction.guild.id, [...interaction.roles.keys()]);
-        await interaction.update({embeds: [new EmbedBuilder().setColor(Colors.Success).setDescription("Self-assignable roles set successfully.")], components: []});
+        await interaction.update(Messages.success("Self-assignable roles set successfully.", {components: []}));
 
         // Restart the flow
         await new Promise(r => setTimeout(r, 3000));

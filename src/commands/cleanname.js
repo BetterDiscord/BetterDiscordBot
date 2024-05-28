@@ -3,6 +3,7 @@ const {humanReadableUptime} = require("../util/time");
 const path = require("path");
 const Keyv = require("keyv");
 const Colors = require("../util/colors");
+const Messages = require("../util/messages");
 const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "settings"});
 
 
@@ -45,7 +46,7 @@ module.exports = {
      * @param interaction {import("discord.js").ChatInputCommandInteraction}
      */
     async server(interaction) {
-        if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply({content: "Sorry this command is only usable by the owner!", ephemeral: true});
+        if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(Messages.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
         const start = Date.now();
         
         const infoEmbed = new EmbedBuilder();
@@ -104,13 +105,13 @@ module.exports = {
         const targetUser = interaction.options.getUser("user");
         const member = interaction.guild.members.cache.get(targetUser.id);
         const isClean = !weirdCharsRegex.test(member.displayName);
-        if (isClean) return await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Info).setDescription("This member's display name already conforms to the username standards.")]});
+        if (isClean) return await interaction.reply(Messages.info("This member's display name already conforms to the username standards."));
         try {
             await member.setNickname(member.user.username);
-            await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Success).setDescription("Successfully cleaned this member's display name.")]});
+            await interaction.reply(Messages.success("Successfully cleaned this member's display name."));
         }
         catch {
-            await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Error).setDescription("Could not clean this member's display name. Double check that I have permission to do so.")]});
+            await interaction.reply(Messages.error("Could not clean this member's display name. Double check that I have permission to do so."));
         }
     },
 
@@ -122,9 +123,9 @@ module.exports = {
         const toEnable = interaction.options.getBoolean("enabled");
         const guildSettings = await settings.get(interaction.guild.id) ?? {};
         const current = guildSettings.cleanOnJoin;
-        if (current === toEnable) return await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Info).setDescription(`This setting was already ${current ? "enabled" : "disabled"}.`)]});
+        if (current === toEnable) return await interaction.reply(Messages.info(`This setting was already ${current ? "enabled" : "disabled"}.`));
         guildSettings.cleanOnJoin = toEnable;
         await settings.set(interaction.guild.id, guildSettings);
-        await interaction.reply({embeds: [new EmbedBuilder().setColor(Colors.Success).setDescription(`This setting is now ${toEnable ? "enabled" : "disabled"}.`)]});
+        await interaction.reply(Messages.success(`This setting is now ${toEnable ? "enabled" : "disabled"}.`));
     },
 };
