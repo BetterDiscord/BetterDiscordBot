@@ -8,19 +8,19 @@ module.exports = class Messages {
         return {embeds: [embed], components, ephemeral: ephemeral};
     }
 
-    static success(description, {ephemeral, components}) {
+    static success(description, {ephemeral, components} = {}) {
         return this.embed({color: Colors.Success, description, ephemeral, components});
     }
 
-    static error(description, {ephemeral, components}) {
+    static error(description, {ephemeral, components} = {}) {
         return this.embed({color: Colors.Error, description, ephemeral, components});
     }
 
-    static info(description, {ephemeral, components}) {
+    static info(description, {ephemeral, components} = {}) {
         return this.embed({color: Colors.Info, description, ephemeral, components});
     }
 
-    static warn(description, {ephemeral, components}) {
+    static warn(description, {ephemeral, components} = {}) {
         return this.embed({color: Colors.Warn, description, ephemeral, components});
     }
 };
