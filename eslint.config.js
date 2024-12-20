@@ -23,7 +23,7 @@ module.exports = [
             "curly": ["error", "multi-line", "consistent"],
             "dot-notation": "error",
             "yoda": "error",
-            "linebreak-style": ["error", "windows"],
+            "linebreak-style": ["error", "unix"],
             "quote-props": ["error", "consistent-as-needed", {keywords: true}],
             "object-curly-spacing": ["error", "never", {objectsInObjects: false}],
             "no-var": "error",
