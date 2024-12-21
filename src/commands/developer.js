@@ -85,14 +85,27 @@ module.exports = {
 
         const bdRoleId = roleName.toLowerCase().includes("plugin") ? "125166040689803264" : "165005972970930176";
         const bdGuild = await interaction.client.guilds.fetch("86004744966914048");
-        const member = await bdGuild.members.fetch(targetUser);
-        if (!member) return await interaction.editReply(Messages.error("User is not in BetterDiscord server!", {ephemeral: true}));
-        await member.roles.add(bdRoleId, "Developer verified");
-
-        const isMember = await interaction.guild.members.fetch(targetUser);
+        try {
+            const member = await bdGuild.members.fetch(targetUser);
+            try {
+                await member.roles.add(bdRoleId, "Developer verified");
+            }
+            catch {
+                await interaction.editReply(Messages.error("Could not add roles in main server!", {ephemeral: true}));
+            }
+        }
+        catch {
+            await interaction.editReply(Messages.error("User is not in BetterDiscord server!", {ephemeral: true}));
+        }
 
         let messageToSend = message.replace("{{user}}", `<@!${targetUser.id}>`).replace("{{role}}", roleName);
-        if (!isMember) messageToSend += "\n\n" + dmMessage;
+        try {
+            const isMember = await interaction.guild.members.fetch(targetUser);
+            if (!isMember) messageToSend += "\n\n" + dmMessage;
+        }
+        catch {
+            messageToSend += "\n\n" + dmMessage;
+        }
 
 
         try {
