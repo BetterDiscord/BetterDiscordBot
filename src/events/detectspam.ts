@@ -27,7 +27,7 @@ export default {
         const fakeSteamMatches = message.content.match(fakeSteamRegex) || [];
         const isFakeDiscord = fakeDiscordMatches.some(s => {
             if (okayDiscordRegex.test(s)) return false;
-            else if (s.toLowerCase()  === "betterdiscord.app") return false;
+            else if (s.toLowerCase() === "betterdiscord.app") return false;
             return true;
         });
         const isFakeSteam = fakeSteamMatches.some(s => s.toLowerCase() !== "steamcommunity.com");
@@ -64,7 +64,7 @@ export default {
 
         const modlogId = current.modlog;
         const modlogChannel = message.guild.channels.cache.get(modlogId);
-        if (!modlogId || !modlogChannel) return; // Can't log
+        if (!modlogId || !modlogChannel || !modlogChannel.isTextBased()) return; // Can't log
 
         const dEmbed = new EmbedBuilder().setColor(Colors.Info)
             .setAuthor({name: message.author.username, iconURL: message.author.displayAvatarURL()})

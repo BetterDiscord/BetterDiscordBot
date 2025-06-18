@@ -1,4 +1,4 @@
-import {ChannelType, ChatInputCommandInteraction, OverwriteType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
+import {ChannelType, ChatInputCommandInteraction, GuildChannel, OverwriteType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
 import {voicetextDB} from "../db";
 import Messages from "../util/messages";
 
@@ -39,7 +39,7 @@ export default {
                 )
         ),
 
-    async execute(interaction: ChatInputCommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction<"cached">) {
         const command = interaction.options.getSubcommand();
         if (command === "bind") return await this.bind(interaction);
         if (command === "unbind") return await this.unbind(interaction);
@@ -47,9 +47,11 @@ export default {
     },
 
 
-    async bind(interaction: ChatInputCommandInteraction) {
+    async bind(interaction: ChatInputCommandInteraction<"cached">) {
         const voice = interaction.options.getChannel("voice", true);
-        const text = interaction.options.getChannel("text", true);
+        const text = interaction.options.getChannel<ChannelType.GuildText>("text", true);
+        if (voice.type !== ChannelType.GuildVoice) return await interaction.reply(Messages.error("The voice channel must be a voice channel.", {ephemeral: true}));
+        if (text.type !== ChannelType.GuildText) return await interaction.reply(Messages.error("The text channel must be a text channel.", {ephemeral: true}));
 
         const partner = await voicetextDB.get(voice.id) ?? "";
         if (partner) return await interaction.reply(Messages.error(`<#${voice.id}> is already bound to <#${partner}>. Please unbind before continuing.`, {ephemeral: true}));
@@ -68,7 +70,7 @@ export default {
     },
 
 
-    async unbind(interaction: ChatInputCommandInteraction) {
+    async unbind(interaction: ChatInputCommandInteraction<"cached">) {
         const targetChannel = interaction.options.getChannel("channel", true);
         const partner = await voicetextDB.get(targetChannel.id) ?? "";
         if (!partner) return await interaction.reply(Messages.error(`<#${targetChannel.id}> is not bound.`, {ephemeral: true}));
@@ -76,7 +78,8 @@ export default {
         /**
          * @type {import("discord.js").GuildChannel}
          */
-        const text = interaction.guild.channels.cache.get(partner);
+        const text = interaction.guild.channels.cache.get(partner) as GuildChannel;
+        if (text.type !== ChannelType.GuildText) return await interaction.reply(Messages.error("The text channel must be a text channel.", {ephemeral: true}));
         try {
             await text.permissionOverwrites.edit(interaction.guild.id, {SendMessages: null}, {reason: "Unbind text and voice channel", type: OverwriteType.Role});
         }

@@ -1,4 +1,4 @@
-import {ChatInputCommandInteraction, SlashCommandBuilder} from "discord.js";
+import {ChatInputCommandInteraction, SlashCommandBuilder, type GuildTextBasedChannel} from "discord.js";
 import {guildDB} from "../db";
 import Messages from "../util/messages";
 
@@ -40,9 +40,9 @@ export default {
         ),
 
 
-    async execute(interaction: ChatInputCommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction<"cached">) {
         // TODO: change the deploy-commands script to allow setting guild commands for individual servers to render this check unnecessary
-        if (interaction.guild.id !== "947985618502307840") return await Messages.error("This action can only be performed in the BD Developer Community server", {ephemeral: true});
+        if (interaction?.guild?.id !== "947985618502307840") return await Messages.error("This action can only be performed in the BD Developer Community server", {ephemeral: true});
         if (!interaction.member.roles.cache.has("948627723830591568") && !interaction.member.roles.cache.has("948647556450246717")) return await Messages.error("This action can only be performed by plugin and theme reviewers", {ephemeral: true});
 
         const command = interaction.options.getSubcommand();
@@ -52,11 +52,11 @@ export default {
     },
 
 
-    async channel(interaction: ChatInputCommandInteraction) {
+    async channel(interaction: ChatInputCommandInteraction<"cached">) {
         const targetChannelId = interaction.options.getString("channel");
 
         // const targetGuild = await interaction.client.guilds.fetch(targetGuildId);
-        const targetChannel = await interaction.client.channels.fetch(targetChannelId);
+        const targetChannel = targetChannelId ? await interaction.client.channels.fetch(targetChannelId) : null;
 
         const current = await guildDB.get(interaction.guild.id) ?? {};
         if (targetChannel) {
@@ -71,10 +71,10 @@ export default {
     },
 
 
-    async add(interaction: ChatInputCommandInteraction) {
+    async add(interaction: ChatInputCommandInteraction<"cached">) {
         await interaction.deferReply({ephemeral: true});
-        const targetUser = interaction.options.getUser("user");
-        const roleName = interaction.options.getString("role");
+        const targetUser = interaction.options.getUser("user", true);
+        const roleName = interaction.options.getString("role", true);
 
         const bdRoleId = roleName.toLowerCase().includes("plugin") ? "125166040689803264" : "165005972970930176";
         const bdGuild = await interaction.client.guilds.fetch("86004744966914048");
@@ -111,7 +111,7 @@ export default {
             if (guildSettings.inviteChannel) {
                 messageToSend += "\n\n" + channelMessage;
                 /** @type {import("discord.js").GuildTextBasedChannel} */
-                const inviteChannel = await interaction.client.channels.fetch(guildSettings.inviteChannel);
+                const inviteChannel = await interaction.client.channels.fetch(guildSettings.inviteChannel) as GuildTextBasedChannel;
                 try {
                     await inviteChannel?.send(messageToSend);
                 }
@@ -128,8 +128,8 @@ export default {
     },
 
 
-    async sync(interaction: ChatInputCommandInteraction) {
-        const targetUser = interaction.options.getUser("user");
+    async sync(interaction: ChatInputCommandInteraction<"cached">) {
+        const targetUser = interaction.options.getUser("user", true);
         const bdGuild = await interaction.client.guilds.fetch("86004744966914048");
         const bdMember = await bdGuild.members.fetch(targetUser);
         if (!bdMember) return await interaction.reply(Messages.error("User is not in BetterDiscord server!", {ephemeral: true}));

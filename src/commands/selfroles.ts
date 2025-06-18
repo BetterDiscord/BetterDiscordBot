@@ -1,4 +1,4 @@
-import {ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, RoleSelectMenuBuilder, RoleSelectMenuInteraction, SlashCommandBuilder, StringSelectMenuBuilder, StringSelectMenuInteraction, StringSelectMenuOptionBuilder} from "discord.js";
+import {ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, MessageComponentInteraction, PermissionFlagsBits, RoleSelectMenuBuilder, RoleSelectMenuInteraction, SlashCommandBuilder, StringSelectMenuBuilder, StringSelectMenuInteraction, StringSelectMenuOptionBuilder} from "discord.js";
 import {selfrolesDB} from "../db";
 import Messages from "../util/messages";
 import Colors from "../util/colors";
@@ -11,18 +11,16 @@ export default {
         .setDescription("Allows users to self-assign roles.")
         .setDMPermission(false),
 
-    /**
-     * @param {import("discord.js").CommandInteraction} interaction
-     */
-    async execute(interaction: ChatInputCommandInteraction) {
+
+    async execute(interaction: MessageComponentInteraction<"cached">) {
         const selfroles = await selfrolesDB.get(interaction.guild.id) ?? [];
         const listingEmbed = new EmbedBuilder().setColor(Colors.Info).setTitle("Available Roles")
-            .setDescription(selfroles.length ? selfroles.map(r => `- <@&${r}>`).join("\n") : "No roles have been configured by the admins.");
+            .setDescription(selfroles.length ? selfroles.map((r: string) => `- <@&${r}>`).join("\n") : "No roles have been configured by the admins.");
 
         const controls = new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder().setCustomId("selfroles-user").setLabel("Manage Your Roles").setStyle(ButtonStyle.Success)
         );
-        const member = interaction.guild.members.cache.get(interaction.user.id);
+        const member = interaction.guild.members.cache.get(interaction.user.id)!;
         if (member.permissions.has(PermissionFlagsBits.ManageRoles)) {
             controls.addComponents(
                 new ButtonBuilder().setCustomId("selfroles-admin").setLabel("Set Assignable Roles").setStyle(ButtonStyle.Primary)
@@ -34,23 +32,23 @@ export default {
     },
 
 
-    async button(interaction: ButtonInteraction) {
+    async button(interaction: ButtonInteraction<"cached">) {
         const id = interaction.customId.split("-")[1];
         if (id === "user") return await this.buttonUser(interaction);
         if (id === "admin") return await this.buttonAdmin(interaction);
     },
 
 
-    async buttonUser(interaction: ButtonInteraction) {
-        const member = interaction.guild.members.cache.get(interaction.user.id);
+    async buttonUser(interaction: ButtonInteraction<"cached">) {
+        const member = interaction.guild.members.cache.get(interaction.user.id)!;
         const assignable = await selfrolesDB.get(interaction.guild.id);
-        const controls = new ActionRowBuilder().addComponents(
+        const controls = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
             new StringSelectMenuBuilder().setCustomId("selfroles")
             .setMinValues(0)
             .setMaxValues(assignable.length)
             .setOptions(assignable.map(
-                roleId => new StringSelectMenuOptionBuilder()
-                    .setLabel(interaction.guild.roles.cache.get(roleId).name)
+                (roleId: string) => new StringSelectMenuOptionBuilder()
+                    .setLabel(interaction.guild.roles.cache.get(roleId)!.name)
                     .setValue(roleId)
                     .setDefault(member.roles.cache.has(roleId))
             ))
@@ -60,8 +58,8 @@ export default {
     },
 
 
-    async select(interaction: StringSelectMenuInteraction) {
-        const member = interaction.guild.members.cache.get(interaction.user.id);
+    async select(interaction: StringSelectMenuInteraction<"cached">) {
+        const member = interaction.guild.members.cache.get(interaction.user.id)!;
         const assignable = await selfrolesDB.get(interaction.guild.id);
         try {
             if (assignable.length) await member.roles.remove(assignable);
@@ -78,16 +76,16 @@ export default {
     },
 
 
-    async buttonAdmin(interaction: ButtonInteraction) {
+    async buttonAdmin(interaction: ButtonInteraction<"cached">) {
         const defaultRoles = await selfrolesDB.get(interaction.guild.id) ?? [];
-        const controls = new ActionRowBuilder().addComponents(
+        const controls = new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(
             new RoleSelectMenuBuilder().setCustomId("selfroles").setMaxValues(25).setDefaultRoles(defaultRoles)
         );
         await interaction.update(Messages.info("Please select which roles should be self-assignable.", {components: [controls]}));
     },
 
 
-    async role(interaction: RoleSelectMenuInteraction) {
+    async role(interaction: RoleSelectMenuInteraction<"cached">) {
         await selfrolesDB.set(interaction.guild.id, [...interaction.roles.keys()]);
         await interaction.update(Messages.success("Self-assignable roles set successfully.", {components: []}));
 

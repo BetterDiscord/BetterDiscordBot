@@ -3,7 +3,7 @@ const msInMinute = msInSecond * 60;
 const msInHour = msInMinute * 60;
 const msInDay = msInHour * 24;
 
-export function humanReadableUptime(uptime) {
+export function humanReadableUptime(uptime: number): string {
     let remainder = uptime;
     const days = Math.floor(uptime / msInDay);
     remainder = remainder - (days * msInDay);

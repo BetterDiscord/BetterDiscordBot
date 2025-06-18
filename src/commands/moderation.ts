@@ -37,7 +37,7 @@ export default {
                 )
         ),
 
-    async execute(interaction: ChatInputCommandInteraction) {
+    async execute(interaction: ChatInputCommandInteraction<"cached">) {
         const command = interaction.options.getSubcommand();
         if (command === "invitefilter") return await this.invitefilter(interaction);
         if (command === "detectspam") return await this.detectspam(interaction);
@@ -48,9 +48,8 @@ export default {
 
     /**
      * TODO: de-dup with detectspam
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
-    async invitefilter(interaction: ChatInputCommandInteraction) {
+    async invitefilter(interaction: ChatInputCommandInteraction<"cached">) {
         const toEnable = interaction.options.getBoolean("enable");
         const current = await guildDB.get(interaction.guild.id) ?? {};
         if (toEnable === null) return await interaction.reply(Messages.info(`This module is currently ${current.invitefilter ? "enabled" : "disabled"}.`, {ephemeral: true}));
@@ -62,7 +61,7 @@ export default {
     },
 
 
-    async detectspam(interaction: ChatInputCommandInteraction) {
+    async detectspam(interaction: ChatInputCommandInteraction<"cached">) {
         const toEnable = interaction.options.getBoolean("enable");
         const current = await guildDB.get(interaction.guild.id) ?? {};
         if (toEnable === null) return await interaction.reply(Messages.info(`This module is currently ${current.detectspam ? "enabled" : "disabled"}.`, {ephemeral: true}));
@@ -76,9 +75,8 @@ export default {
 
     /**
      * TODO: de-dup with joinleave
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
-    async modlog(interaction: ChatInputCommandInteraction) {
+    async modlog(interaction: ChatInputCommandInteraction<"cached">) {
         const targetChannel = interaction.options.getChannel("channel");
         const current = await guildDB.get(interaction.guild.id) ?? {};
         if (targetChannel) {
@@ -93,7 +91,7 @@ export default {
     },
 
 
-    async joinleave(interaction: ChatInputCommandInteraction) {
+    async joinleave(interaction: ChatInputCommandInteraction<"cached">) {
         const targetChannel = interaction.options.getChannel("channel");
         const current = await guildDB.get(interaction.guild.id) ?? {};
         if (targetChannel) {

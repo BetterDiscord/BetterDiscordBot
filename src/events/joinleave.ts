@@ -13,6 +13,7 @@ export default [
             const guildSettings = await guildDB.get(member.guild.id);
             if (!guildSettings || !guildSettings.joinleave) return;
             const channel = member.guild.channels.cache.get(guildSettings.joinleave);
+            if (!channel || !channel.isTextBased()) return;
             await channel.send(Messages.success(`<@!${member.user.id}> has joined the server!`));
         },
     },
@@ -23,6 +24,7 @@ export default [
             const guildSettings = await guildDB.get(member.guild.id);
             if (!guildSettings || !guildSettings.joinleave) return;
             const channel = member.guild.channels.cache.get(guildSettings.joinleave);
+            if (!channel || !channel.isTextBased()) return;
             await channel.send(Messages.error(`**${member.user.tag} (${member.user.id})** has left the server!`));
         },
     }

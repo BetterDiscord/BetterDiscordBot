@@ -14,8 +14,8 @@
   "author": "Zerebos",
   "license": "MIT",
   "devDependencies": {
-    "@zerebos/eslint-config": "^1.0.0",
-    "@zerebos/eslint-config-typescript": "^1.0.0",
+    "@zerebos/eslint-config": "file:../../eslint-configs/packages/base",
+    "@zerebos/eslint-config-typescript": "file:../../eslint-configs/packages/typescript",
     "eslint": "^9.29.0"
   },
   "dependencies": {

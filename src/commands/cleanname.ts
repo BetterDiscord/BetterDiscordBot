@@ -1,4 +1,4 @@
-import {ActionRowBuilder, ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, RoleSelectMenuBuilder, RoleSelectMenuInteraction, SlashCommandBuilder} from "discord.js";
+import {ActionRowBuilder, ChatInputCommandInteraction, ComponentType, EmbedBuilder, PermissionFlagsBits, RoleSelectMenuBuilder, RoleSelectMenuInteraction, SlashCommandBuilder} from "discord.js";
 import {humanReadableUptime} from "../util/time";
 import Colors from "../util/colors";
 import Messages from "../util/messages";
@@ -28,10 +28,8 @@ export default {
                     .setRequired(true)))
         .addSubcommand(c => c.setName("server").setDescription("Fixes all display names in the server.")),
 
-    /**
-     * @param {import("discord.js").CommandInteraction} interaction
-     */
-    async execute(interaction: ChatInputCommandInteraction) {
+
+    async execute(interaction: ChatInputCommandInteraction<"cached">) {
         const command = interaction.options.getSubcommand();
         if (command === "server") return await this.server(interaction);
         if (command === "user") return await this.user(interaction);
@@ -39,15 +37,15 @@ export default {
     },
 
 
-    async server(interaction: ChatInputCommandInteraction) {
+    async server(interaction: ChatInputCommandInteraction<"cached">) {
         const controls = new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(
-            new RoleSelectMenuBuilder().setCustomId("cleanname").setMinValues(0).setMaxValues(25).setDefaultRoles(interaction.guild.roles.highest.id)
+            new RoleSelectMenuBuilder({type: ComponentType.RoleSelect}).setCustomId("cleanname").setMinValues(0).setMaxValues(25).setDefaultRoles(interaction.guild.roles.highest.id)
         );
         await interaction.reply(Messages.info("Please select which roles should bypass this cleaning.", {components: [controls]}));
     },
 
 
-    async role(interaction: RoleSelectMenuInteraction) {
+    async role(interaction: RoleSelectMenuInteraction<"cached">) {
         const roleIds = [...interaction.roles.keys()];
 
         const start = Date.now();
@@ -104,9 +102,10 @@ export default {
     },
 
 
-    async user(interaction: ChatInputCommandInteraction) {
-        const targetUser = interaction.options.getUser("user");
+    async user(interaction: ChatInputCommandInteraction<"cached">) {
+        const targetUser = interaction.options.getUser("user", true);
         const member = interaction.guild.members.cache.get(targetUser.id);
+        if (!member) return await interaction.reply(Messages.error("This user is not in the server.", {ephemeral: true}));
         const isClean = !weirdCharsRegex.test(member.displayName);
         if (isClean) return await interaction.reply(Messages.info("This member's display name already conforms to the username standards."));
         try {
@@ -119,7 +118,7 @@ export default {
     },
 
 
-    async join(interaction: ChatInputCommandInteraction) {
+    async join(interaction: ChatInputCommandInteraction<"cached">) {
         const toEnable = interaction.options.getBoolean("enabled");
         const guildSettings = await guildDB.get(interaction.guild.id) ?? {};
         const current = guildSettings.cleanOnJoin;
