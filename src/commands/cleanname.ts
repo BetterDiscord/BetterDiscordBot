@@ -1,15 +1,14 @@
-const {SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, RoleSelectMenuBuilder} = require("discord.js");
-const {humanReadableUptime} = require("../util/time");
-const path = require("path");
-const Keyv = require("keyv");
-const Colors = require("../util/colors");
-const Messages = require("../util/messages");
-const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "settings"});
+import {ActionRowBuilder, ChatInputCommandInteraction, EmbedBuilder, PermissionFlagsBits, RoleSelectMenuBuilder, RoleSelectMenuInteraction, SlashCommandBuilder} from "discord.js";
+import {humanReadableUptime} from "../util/time";
+import Colors from "../util/colors";
+import Messages from "../util/messages";
+import {guildDB} from "../db";
+
 
 
 const weirdCharsRegex = /[^A-Za-z0-9\-_\\. ]/g;
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName("cleanname")
         .setDescription("Cleans member display names to match Discord's username standards.")
@@ -29,10 +28,10 @@ module.exports = {
                     .setRequired(true)))
         .addSubcommand(c => c.setName("server").setDescription("Fixes all display names in the server.")),
 
-    /** 
+    /**
      * @param {import("discord.js").CommandInteraction} interaction
      */
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         const command = interaction.options.getSubcommand();
         if (command === "server") return await this.server(interaction);
         if (command === "user") return await this.user(interaction);
@@ -40,25 +39,19 @@ module.exports = {
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async server(interaction) {
-        const controls = new ActionRowBuilder().addComponents(
+    async server(interaction: ChatInputCommandInteraction) {
+        const controls = new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(
             new RoleSelectMenuBuilder().setCustomId("cleanname").setMinValues(0).setMaxValues(25).setDefaultRoles(interaction.guild.roles.highest.id)
         );
         await interaction.reply(Messages.info("Please select which roles should bypass this cleaning.", {components: [controls]}));
     },
 
 
-    /** 
-     * @param {import("discord.js").RoleSelectMenuInteraction} interaction
-     */
-    async role(interaction) {
+    async role(interaction: RoleSelectMenuInteraction) {
         const roleIds = [...interaction.roles.keys()];
 
         const start = Date.now();
-        
+
         const infoEmbed = new EmbedBuilder();
         infoEmbed.setColor(Colors.Info);
         infoEmbed.setTitle("Fixing Display Names");
@@ -111,10 +104,7 @@ module.exports = {
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async user(interaction) {
+    async user(interaction: ChatInputCommandInteraction) {
         const targetUser = interaction.options.getUser("user");
         const member = interaction.guild.members.cache.get(targetUser.id);
         const isClean = !weirdCharsRegex.test(member.displayName);
@@ -129,16 +119,13 @@ module.exports = {
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async join(interaction) {
+    async join(interaction: ChatInputCommandInteraction) {
         const toEnable = interaction.options.getBoolean("enabled");
-        const guildSettings = await settings.get(interaction.guild.id) ?? {};
+        const guildSettings = await guildDB.get(interaction.guild.id) ?? {};
         const current = guildSettings.cleanOnJoin;
         if (current === toEnable) return await interaction.reply(Messages.info(`This setting was already ${current ? "enabled" : "disabled"}.`));
         guildSettings.cleanOnJoin = toEnable;
-        await settings.set(interaction.guild.id, guildSettings);
+        await guildDB.set(interaction.guild.id, guildSettings);
         await interaction.reply(Messages.success(`This setting is now ${toEnable ? "enabled" : "disabled"}.`));
     },
 };

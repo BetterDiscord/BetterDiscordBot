@@ -1,8 +1,6 @@
-const {Events, EmbedBuilder, PermissionFlagsBits} = require("discord.js");
-const path = require("path");
-const Keyv = require("keyv");
-const Colors = require("../util/colors");
-const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "settings"});
+import {EmbedBuilder, Events, Message, PermissionFlagsBits} from "discord.js";
+import {guildDB} from "../db";
+import Colors from "../util/colors";
 
 
 const fakeDiscordRegex = new RegExp(`([a-zA-Z-\\.]+)?d[il][il]?scorr?(cl|[ldb])([a-zA-Z-\\.]+)?\\.(com|net|app|gift|ru|uk)`, "ig");
@@ -11,20 +9,17 @@ const fakeSteamRegex = new RegExp(`str?e[ea]?mcomm?m?un[un]?[un]?[tl]?[il][tl]?t
 const sketchyRuRegex = new RegExp(`([a-zA-Z-\\.]+).ru.com`, "ig");
 
 // TODO: consider de-duping with invitefilter event
-module.exports = {
+export default {
     name: Events.MessageCreate,
 
-    /** 
-     * @param {import("discord.js").Message} message
-     */
-    async execute(message) {
+    async execute(message: Message) {
         // Ignore DM messages and owner messages and people with manage messages perms
         if (!message.inGuild() || message.author.id === process.env.BOT_OWNER_ID) return;
         if (message.author.id === message.client.user.id) return;
         if (message.channel.permissionsFor(message.author)?.has(PermissionFlagsBits.ManageMessages)) return;
 
         // Obviously if this is disabled we don't need to do this stuff either
-        const current = await settings.get(message.guild.id) ?? {};
+        const current = await guildDB.get(message.guild.id) ?? {};
         if (!current?.detectspam) return;
 
 
@@ -77,7 +72,7 @@ module.exports = {
             .addFields({name: "Reason", value: reason})
             .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
         modlogChannel.send({embeds: [dEmbed]});
-        
+
 
         if (didMute) {
             const mEmbed = new EmbedBuilder().setColor(Colors.Info)

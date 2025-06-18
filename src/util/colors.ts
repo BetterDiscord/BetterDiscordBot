@@ -1,4 +1,4 @@
-module.exports = class Colors {
+export default class Colors {
     static Info = "#5a88ce";
     static Warn = "#fbbf24";
     static Success = "#3ac172";

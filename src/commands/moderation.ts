@@ -1,11 +1,10 @@
-const {SlashCommandBuilder, PermissionFlagsBits, ChannelType} = require("discord.js");
-const path = require("path");
-const Keyv = require("keyv");
-const Messages = require("../util/messages");
-const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "settings"});
+import {ChannelType, ChatInputCommandInteraction, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
+import {guildDB} from "../db";
+import Messages from "../util/messages";
 
 
-module.exports = {
+
+export default {
     data: new SlashCommandBuilder()
         .setName("moderation")
         .setDescription("Commands for moderating the server.")
@@ -38,10 +37,7 @@ module.exports = {
                 )
         ),
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         const command = interaction.options.getSubcommand();
         if (command === "invitefilter") return await this.invitefilter(interaction);
         if (command === "detectspam") return await this.detectspam(interaction);
@@ -50,69 +46,63 @@ module.exports = {
     },
 
 
-    /** 
+    /**
      * TODO: de-dup with detectspam
      * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
-    async invitefilter(interaction) {
+    async invitefilter(interaction: ChatInputCommandInteraction) {
         const toEnable = interaction.options.getBoolean("enable");
-        const current = await settings.get(interaction.guild.id) ?? {};
+        const current = await guildDB.get(interaction.guild.id) ?? {};
         if (toEnable === null) return await interaction.reply(Messages.info(`This module is currently ${current.invitefilter ? "enabled" : "disabled"}.`, {ephemeral: true}));
 
         current.invitefilter = toEnable;
-        await settings.set(interaction.guild.id, current);
+        await guildDB.set(interaction.guild.id, current);
 
         await interaction.reply(Messages.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async detectspam(interaction) {
+    async detectspam(interaction: ChatInputCommandInteraction) {
         const toEnable = interaction.options.getBoolean("enable");
-        const current = await settings.get(interaction.guild.id) ?? {};
+        const current = await guildDB.get(interaction.guild.id) ?? {};
         if (toEnable === null) return await interaction.reply(Messages.info(`This module is currently ${current.detectspam ? "enabled" : "disabled"}.`, {ephemeral: true}));
 
         current.detectspam = toEnable;
-        await settings.set(interaction.guild.id, current);
+        await guildDB.set(interaction.guild.id, current);
 
         await interaction.reply(Messages.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
     },
 
 
-    /** 
+    /**
      * TODO: de-dup with joinleave
      * @param {import("discord.js").ChatInputCommandInteraction} interaction
      */
-    async modlog(interaction) {
+    async modlog(interaction: ChatInputCommandInteraction) {
         const targetChannel = interaction.options.getChannel("channel");
-        const current = await settings.get(interaction.guild.id) ?? {};
+        const current = await guildDB.get(interaction.guild.id) ?? {};
         if (targetChannel) {
             current.modlog = targetChannel.id;
-            await settings.set(interaction.guild.id, current);
+            await guildDB.set(interaction.guild.id, current);
         }
         else {
             delete current.modlog;
-            await settings.set(interaction.guild.id, current);
+            await guildDB.set(interaction.guild.id, current);
         }
         await interaction.reply(Messages.success(targetChannel ? `Modlog set to <#${targetChannel.id}>!` : "Modlog has been unset!", {ephemeral: true}));
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async joinleave(interaction) {
+    async joinleave(interaction: ChatInputCommandInteraction) {
         const targetChannel = interaction.options.getChannel("channel");
-        const current = await settings.get(interaction.guild.id) ?? {};
+        const current = await guildDB.get(interaction.guild.id) ?? {};
         if (targetChannel) {
             current.joinleave = targetChannel.id;
-            await settings.set(interaction.guild.id, current);
+            await guildDB.set(interaction.guild.id, current);
         }
         else {
             delete current.joinleave;
-            await settings.set(interaction.guild.id, current);
+            await guildDB.set(interaction.guild.id, current);
         }
         await interaction.reply(Messages.success(targetChannel ? `Join/leave set to <#${targetChannel.id}>!` : "Join/leave has been unset!", {ephemeral: true}));
     },

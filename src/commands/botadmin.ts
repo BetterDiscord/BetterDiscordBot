@@ -1,26 +1,25 @@
-const {SlashCommandBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, ChannelType} = require("discord.js");
-const path = require("path");
-const Keyv = require("keyv");
-const Messages = require("../util/messages");
-const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "global"});
+import {ActionRowBuilder, ChannelType, ChatInputCommandInteraction, ModalBuilder, SlashCommandBuilder, TextChannel, TextInputBuilder, TextInputStyle, type PartialTextBasedChannelFields} from "discord.js";
+import Messages from "../util/messages";
+import {globalDB} from "../db";
 
 
-module.exports = {
+
+export default {
     owner: true,
     data: new SlashCommandBuilder()
         .setName("botadmin")
         .setDescription("Global settings for the bot during runtime.")
-        .addSubcommandGroup(group => 
+        .addSubcommandGroup(group =>
             group.setName("send").setDescription("Sends messages to different locations")
                 .addSubcommand(c =>
                     c.setName("user").setDescription("Sends a DM to the specified user.")
-                        .addUserOption(opt => 
+                        .addUserOption(opt =>
                             opt.setName("user").setDescription("User to DM.").setRequired(true)
                         )
                 )
                 .addSubcommand(c =>
                     c.setName("channel").setDescription("Sends a message to the specified channel.")
-                        .addChannelOption(opt => 
+                        .addChannelOption(opt =>
                             opt.setName("channel").setDescription("Channel to send a message.").setRequired(true)
                             .addChannelTypes(ChannelType.GuildText)
                         )
@@ -34,10 +33,8 @@ module.exports = {
         )
         .addSubcommand(c => c.setName("quit").setDescription("Exits the bot gracefully.")),
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async execute(interaction) {
+
+    async execute(interaction: ChatInputCommandInteraction) {
         if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(Messages.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
 
         const group = interaction.options.getSubcommandGroup();
@@ -51,30 +48,20 @@ module.exports = {
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async channel(interaction) {
-        return await this.send(interaction, interaction.options.getChannel("channel", true));
+    async channel(interaction: ChatInputCommandInteraction) {
+        return await this.send(interaction, interaction.options.getChannel("channel", true) as TextChannel);
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async user(interaction) {
+    async user(interaction: ChatInputCommandInteraction) {
         return await this.send(interaction, interaction.options.getUser("user", true));
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     * @param {import("discord.js").PartialTextBasedChannelFields} target
-     */
-    async send(interaction, target) {
+    async send(interaction: ChatInputCommandInteraction, target: PartialTextBasedChannelFields) {
         const modal = new ModalBuilder().setTitle("Message To Send").setCustomId("botadmin-send")
             .addComponents(
-                new ActionRowBuilder()
+                new ActionRowBuilder<TextInputBuilder>()
                     .addComponents(
                         new TextInputBuilder().setCustomId("message").setLabel("Message")
                             .setStyle(TextInputStyle.Paragraph).setRequired(true)
@@ -82,7 +69,7 @@ module.exports = {
                     )
                 );
 
-        
+
         await interaction.showModal(modal);
 
         try {
@@ -107,21 +94,15 @@ module.exports = {
     async modal() {},
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async forwarding(interaction) {
+    async forwarding(interaction: ChatInputCommandInteraction) {
         const targetUser = interaction.options.getUser("user");
-        if (targetUser) await settings.set("forwarding", targetUser.id);
-        else await settings.delete("forwarding");
+        if (targetUser) await globalDB.set("forwarding", targetUser.id);
+        else await globalDB.delete("forwarding");
         await interaction.reply(Messages.success(targetUser ? `Now forwarding DMs to <@${targetUser.id}>!` : "No longer forwarding DMs!", {ephemeral: true}));
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async quit(interaction) {
+    async quit(interaction: ChatInputCommandInteraction) {
         await interaction.reply(Messages.info("Bot shutting down...", {ephemeral: true}));
         await interaction.client.destroy();
         process.exit(0);

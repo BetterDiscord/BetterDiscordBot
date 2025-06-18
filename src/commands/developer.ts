@@ -1,15 +1,14 @@
-const {SlashCommandBuilder} = require("discord.js");
-const path = require("path");
-const Keyv = require("keyv");
-const Messages = require("../util/messages");
-const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "settings"});
+import {ChatInputCommandInteraction, SlashCommandBuilder} from "discord.js";
+import {guildDB} from "../db";
+import Messages from "../util/messages";
+
 
 
 const message = `Hi {{user}}, you have just been given the {{role}} role in the BetterDiscord server!`;
 const dmMessage = `If you weren't already aware, we have a developer community server where developers can interact, help each other, and ask questions about creating plugins and themes. It's also the primary location for upcoming BetterDiscord news and announcements for developers. We'd love for you to join us if you haven't done so already: https://discord.gg/hC9wzzQeZv`;
 const channelMessage = `By the way, normally this would have been sent to your DMs, but it seems your privacy settings prevented that. As a heads up, a lot of the information and communication from the website comes through DMs, so I would recommend adjusting that privacy option at least for the developer community server!`;
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName("developer")
         .setDescription("Manage roles for developers in the community.")
@@ -40,10 +39,8 @@ module.exports = {
                 )
         ),
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async execute(interaction) {
+
+    async execute(interaction: ChatInputCommandInteraction) {
         // TODO: change the deploy-commands script to allow setting guild commands for individual servers to render this check unnecessary
         if (interaction.guild.id !== "947985618502307840") return await Messages.error("This action can only be performed in the BD Developer Community server", {ephemeral: true});
         if (!interaction.member.roles.cache.has("948627723830591568") && !interaction.member.roles.cache.has("948647556450246717")) return await Messages.error("This action can only be performed by plugin and theme reviewers", {ephemeral: true});
@@ -54,31 +51,27 @@ module.exports = {
         if (command === "add") return await this.add(interaction);
     },
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async channel(interaction) {
+
+    async channel(interaction: ChatInputCommandInteraction) {
         const targetChannelId = interaction.options.getString("channel");
 
         // const targetGuild = await interaction.client.guilds.fetch(targetGuildId);
         const targetChannel = await interaction.client.channels.fetch(targetChannelId);
-        
-        const current = await settings.get(interaction.guild.id) ?? {};
+
+        const current = await guildDB.get(interaction.guild.id) ?? {};
         if (targetChannel) {
             current.inviteChannel = targetChannel.id;
-            await settings.set(interaction.guild.id, current);
+            await guildDB.set(interaction.guild.id, current);
         }
         else {
             delete current.inviteChannel;
-            await settings.set(interaction.guild.id, current);
+            await guildDB.set(interaction.guild.id, current);
         }
         await interaction.reply(Messages.success(targetChannel ? `Invite message channel set to <#${targetChannel.id}>!` : "Invite message channel has been unset!", {ephemeral: true}));
     },
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async add(interaction) {
+
+    async add(interaction: ChatInputCommandInteraction) {
         await interaction.deferReply({ephemeral: true});
         const targetUser = interaction.options.getUser("user");
         const roleName = interaction.options.getString("role");
@@ -114,7 +107,7 @@ module.exports = {
         catch {
             await interaction.editReply(Messages.error("Could not DM user!", {ephemeral: true}));
 
-            const guildSettings = await settings.get(interaction.guild.id) ?? {};
+            const guildSettings = await guildDB.get(interaction.guild.id) ?? {};
             if (guildSettings.inviteChannel) {
                 messageToSend += "\n\n" + channelMessage;
                 /** @type {import("discord.js").GuildTextBasedChannel} */
@@ -134,10 +127,8 @@ module.exports = {
         await interaction.editReply(Messages.success("Role has been added successfully!", {ephemeral: true}));
     },
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async sync(interaction) {
+
+    async sync(interaction: ChatInputCommandInteraction) {
         const targetUser = interaction.options.getUser("user");
         const bdGuild = await interaction.client.guilds.fetch("86004744966914048");
         const bdMember = await bdGuild.members.fetch(targetUser);
@@ -148,7 +139,7 @@ module.exports = {
 
         const communityMember = await interaction.guild.members.fetch(targetUser);
 
-        try { 
+        try {
             await communityMember.roles.add(rolesToAdd, "Syncing roles from main server");
         }
         catch {

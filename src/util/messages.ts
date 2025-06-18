@@ -1,7 +1,8 @@
-const {EmbedBuilder} = require("discord.js");
-const Colors = require("./colors");
+import {EmbedBuilder} from "discord.js";
+import Colors from "./colors";
 
-module.exports = class Messages {
+
+export default class Messages {
     static embed({description, color, ephemeral, components}) {
         // return new EmbedBuilder().setColor(color).setDescription(description);
         const embed = new EmbedBuilder().setColor(color).setDescription(description);

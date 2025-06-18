@@ -1,39 +1,36 @@
-const childProcess = require("child_process");
-const {promisify} = require("util");
+import childProcess from "child_process";
+import {promisify} from "util";
+import {SlashCommandBuilder, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType} from "discord.js";
+import type {CommandStats} from "../types";
+import {statsDB} from "../db";
+import {humanReadableUptime} from "../util/time";
+
+
 const exec = promisify(childProcess.exec);
-const path = require("path");
-const Keyv = require("keyv");
-// TODO: Create a better way to access the sqlite db without relative pathing
-const stats = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "stats"});
+const inviteLink = `https://discord.com/oauth2/authorize?client_id=${process.env.BOT_CLIENT_ID}&permissions=${process.env.BOT_PERMISSIONS || "0"}&scope=bot%20applications.commands`;
+const userInviteLink = `https://discord.com/oauth2/authorize?client_id=${process.env.BOT_CLIENT_ID}&integration_type=1&scope=applications.commands`;
 
-const {SlashCommandBuilder, EmbedBuilder, ChannelType} = require("discord.js");
-const {humanReadableUptime} = require("../util/time");
-const Colors = require("../util/colors");
-
-
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName("about")
-        .setDescription("Gives some information about the bot"),
+        .setDescription("Gives some information about the bot")
+        .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+        .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel),
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         await interaction.deferReply();
         const aboutEmbed = new EmbedBuilder();
 
-        aboutEmbed.setColor(Colors.Info);
+        aboutEmbed.setColor("Blue");
         aboutEmbed.setAuthor({name: interaction.client.user.username, iconURL: interaction.client.user.displayAvatarURL()});
-        // TODO: I think it's overkill but re-evaluate later
-        // aboutEmbed.setImage(interaction.client.user.bannerURL());
+        aboutEmbed.setDescription("**🆕 Now user-installable!** Add to your account for DM access and cross-server profiles.");
 
-        const owner = await interaction.client.users.fetch(process.env.BOT_OWNER_ID);
+        const owner = await interaction.client.users.fetch(process.env.BOT_OWNER_ID!);
         if (owner) aboutEmbed.setFooter({text: `Created by @${owner.username}`, iconURL: owner.displayAvatarURL()});
         aboutEmbed.setTimestamp(interaction.client.readyAt);
 
 
-        const addField = (n,v,i) => aboutEmbed.addFields({name: n, value: v, inline: i ?? false});
+        const addField = (n: string, v: string, i?: boolean) => aboutEmbed.addFields({name: n, value: v, inline: i ?? false});
 
         if (process.env.BOT_DESCRIPTION) addField(`About`, process.env.BOT_DESCRIPTION);
 
@@ -78,7 +75,7 @@ module.exports = {
 
         const now = Date.now();
         const usage = process.cpuUsage(interaction.client.cpuUsage);
-        const result = 100 * ((usage.user + usage.system) / ((now - interaction.client.readyAt) * 1000));
+        const result = 100 * ((usage.user + usage.system) / ((now - interaction.client.readyAt.valueOf()) * 1000));
         const memUsage = process.memoryUsage().heapUsed / 1024 / 1024;
         let processText = `${memUsage.toFixed(2)} MB\n`;
         processText += `${result.toFixed(2)}% CPU`;
@@ -87,18 +84,18 @@ module.exports = {
 
         addField(`Emojis`, interaction.client.emojis.cache.size.toLocaleString(), true);
 
-        const cumulative = {};
+        const cumulative: CommandStats["commands"] = {};
         const values = interaction.client.guilds.cache.values();
         for (const guild of values) {
-            const guildStats = await stats.get(guild.id);
+            const guildStats = await statsDB.get(guild.id) as CommandStats | undefined;
             if (!guildStats || !guildStats.commands) continue;
             for (const commandName in guildStats.commands) {
                 if (!cumulative[commandName]) cumulative[commandName] = guildStats.commands[commandName];
                 else cumulative[commandName] = cumulative[commandName] + guildStats.commands[commandName];
             }
         }
-        
-        const dmStats = await stats.get(interaction.client.user.id);
+
+        const dmStats = await statsDB.get(interaction.client.user.id) as CommandStats | undefined;
         if (dmStats && dmStats.commands) {
             for (const commandName in dmStats.commands) {
                 if (!cumulative[commandName]) cumulative[commandName] = dmStats.commands[commandName];
@@ -109,7 +106,15 @@ module.exports = {
         const commandsRun = Object.values(cumulative).reduce((a, b) => a + b, 0).toLocaleString();
         addField(`Commands Run`, commandsRun, true);
 
-        addField(`Uptime`, humanReadableUptime(now - interaction.client.readyAt), true);
-        await interaction.editReply({embeds: [aboutEmbed]});
+        addField(`Uptime`, humanReadableUptime(now - interaction.client.readyAt.valueOf()), true);
+        await interaction.editReply({
+            embeds: [aboutEmbed],
+            components: [
+                new ActionRowBuilder<ButtonBuilder>().addComponents(
+                    new ButtonBuilder().setLabel(`Invite ${interaction.client.user.username}`).setStyle(ButtonStyle.Link).setURL(inviteLink).setEmoji("🔗"),
+                    new ButtonBuilder().setLabel("Add to Account").setStyle(ButtonStyle.Link).setURL(userInviteLink).setEmoji("📱")
+                )
+            ]
+        });
     },
 };

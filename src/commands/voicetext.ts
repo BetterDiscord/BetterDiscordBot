@@ -1,11 +1,9 @@
-const {SlashCommandBuilder, PermissionFlagsBits, ChannelType, OverwriteType} = require("discord.js");
-const path = require("path");
-const Keyv = require("keyv");
-const Messages = require("../util/messages");
-const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "voicetext"});
+import {ChannelType, ChatInputCommandInteraction, OverwriteType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
+import {voicetextDB} from "../db";
+import Messages from "../util/messages";
 
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName("voicetext")
         .setDescription("Binds one voice and one text channel together.")
@@ -41,10 +39,7 @@ module.exports = {
                 )
         ),
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction) {
         const command = interaction.options.getSubcommand();
         if (command === "bind") return await this.bind(interaction);
         if (command === "unbind") return await this.unbind(interaction);
@@ -52,14 +47,11 @@ module.exports = {
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async bind(interaction) {
+    async bind(interaction: ChatInputCommandInteraction) {
         const voice = interaction.options.getChannel("voice", true);
         const text = interaction.options.getChannel("text", true);
 
-        const partner = await settings.get(voice.id) ?? "";
+        const partner = await voicetextDB.get(voice.id) ?? "";
         if (partner) return await interaction.reply(Messages.error(`<#${voice.id}> is already bound to <#${partner}>. Please unbind before continuing.`, {ephemeral: true}));
 
 
@@ -71,17 +63,14 @@ module.exports = {
             return await interaction.reply(Messages.error(`Unable to adjust permissions for <#${text.id}>. Make sure the bot has permission.`));
         }
 
-        await settings.set(voice.id, text.id);
+        await voicetextDB.set(voice.id, text.id);
         await interaction.reply(Messages.success(`<#${voice.id}> is now bound to <#${text.id}>!`, {ephemeral: true}));
     },
 
 
-    /**
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async unbind(interaction) {
+    async unbind(interaction: ChatInputCommandInteraction) {
         const targetChannel = interaction.options.getChannel("channel", true);
-        const partner = await settings.get(targetChannel.id) ?? "";
+        const partner = await voicetextDB.get(targetChannel.id) ?? "";
         if (!partner) return await interaction.reply(Messages.error(`<#${targetChannel.id}> is not bound.`, {ephemeral: true}));
 
         /**
@@ -96,17 +85,14 @@ module.exports = {
             return await interaction.reply(Messages.error(`Unable to adjust permissions for <#${text.id}>. Make sure the bot has permission.`));
         }
 
-        await settings.delete(targetChannel.id);
+        await voicetextDB.delete(targetChannel.id);
         await interaction.reply(Messages.success(`<#${targetChannel.id}> is now unbound!`, {ephemeral: true}));
     },
 
 
-    /** 
-     * @param {import("discord.js").ChatInputCommandInteraction} interaction
-     */
-    async status(interaction) {
+    async status(interaction: ChatInputCommandInteraction) {
         const targetChannel = interaction.options.getChannel("channel", true);
-        const partner = await settings.get(targetChannel.id) ?? "";
+        const partner = await voicetextDB.get(targetChannel.id) ?? "";
         await interaction.reply(Messages.info(partner ? `<#${targetChannel.id}> is bound to <#${partner}>` : `This channel <#${targetChannel.id}> is not bound.`, {ephemeral: true}));
     },
 };

@@ -1,22 +1,17 @@
-const {Events} = require("discord.js");
-const path = require("path");
-const Keyv = require("keyv");
-const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "settings"});
+import {Events, type GuildMember} from "discord.js";
+import {guildDB} from "../db";
 
 
 // TODO: put this somewhere common to avoid double maintenance
 const weirdCharsRegex = /[^A-Za-z0-9\-_\\. ]/g;
 
-module.exports = {
+export default {
     name: Events.GuildMemberAdd,
 
-    /** 
-     * @param {import("discord.js").GuildMember} member
-     */
-    async execute(member) {
+    async execute(member: GuildMember) {
         if (!weirdCharsRegex.test(member.displayName)) return; // TODO: maybe log?
 
-        const guildSettings = await settings.get(member.guild.id);
+        const guildSettings = await guildDB.get(member.guild.id);
         if (!guildSettings?.cleanOnJoin) return;
 
         try {

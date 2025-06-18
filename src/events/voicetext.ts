@@ -1,20 +1,19 @@
-const {Events} = require("discord.js");
-const path = require("path");
-const Keyv = require("keyv");
-const settings = new Keyv("sqlite://" + path.resolve(__dirname, "..", "..", "settings.sqlite3"), {namespace: "voicetext"});
+import {Events, type VoiceState} from "discord.js";
+import {voicetextDB} from "../db";
 
 
-module.exports = {
+
+export default {
     name: Events.VoiceStateUpdate,
 
-    /** 
+    /**
      * @param {import("discord.js").VoiceState} oldState
      * @param {import("discord.js").VoiceState} newState
      */
-    async execute(oldState, newState) {
+    async execute(oldState: VoiceState, newState: VoiceState) {
 
-        const oldPartner = await settings.get(oldState.channelId) ?? "";
-        const newPartner = await settings.get(newState.channelId) ?? "";
+        const oldPartner = await voicetextDB.get(oldState.channelId) ?? "";
+        const newPartner = await voicetextDB.get(newState.channelId) ?? "";
 
         // Most common case: they arent in a bound channel, ignore
         const didChange = newState.channelId !== oldState.channelId;
