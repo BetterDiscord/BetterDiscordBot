@@ -1,4 +1,4 @@
-import {ChannelType, ChatInputCommandInteraction, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
+import {ChannelType, ChatInputCommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
 import {guildDB} from "../db";
 import Messages from "../util/messages";
 
@@ -9,7 +9,7 @@ export default {
         .setName("moderation")
         .setDescription("Commands for moderating the server.")
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-        .setDMPermission(false)
+        .setContexts(InteractionContextType.Guild)
         .addSubcommand(
             c => c.setName("invitefilter").setDescription("Toggles the invite filter module.")
                 .addBooleanOption(opt =>
@@ -26,14 +26,14 @@ export default {
             c => c.setName("modlog").setDescription("Sets a channel to log bot moderation actions.")
                 .addChannelOption(opt =>
                     opt.setName("channel").setDescription("Where to log my actions?").setRequired(false)
-                    .addChannelTypes(ChannelType.GuildText)
+                        .addChannelTypes(ChannelType.GuildText)
                 )
         )
         .addSubcommand(
             c => c.setName("joinleave").setDescription("Sets a channel to log join/leave messages.")
                 .addChannelOption(opt =>
                     opt.setName("channel").setDescription("Where to log join/leave messages?").setRequired(false)
-                    .addChannelTypes(ChannelType.GuildText)
+                        .addChannelTypes(ChannelType.GuildText)
                 )
         ),
 
@@ -61,6 +61,7 @@ export default {
     },
 
 
+    // TODO: move this to spam.ts
     async detectspam(interaction: ChatInputCommandInteraction<"cached">) {
         const toEnable = interaction.options.getBoolean("enable");
         const current = await guildDB.get(interaction.guild.id) ?? {};

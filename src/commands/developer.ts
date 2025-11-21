@@ -1,4 +1,4 @@
-import {ChatInputCommandInteraction, SlashCommandBuilder, type GuildTextBasedChannel} from "discord.js";
+import {ChatInputCommandInteraction, InteractionContextType, SlashCommandBuilder, type GuildTextBasedChannel} from "discord.js";
 import {guildDB} from "../db";
 import Messages from "../util/messages";
 
@@ -12,7 +12,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName("developer")
         .setDescription("Manage roles for developers in the community.")
-        .setDMPermission(false)
+        .setContexts(InteractionContextType.Guild)
         .addSubcommand(
             c => c.setName("add").setDescription("Adds a new developer or new role to an existing developer.")
                 .addUserOption(opt =>
