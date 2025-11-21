@@ -69,7 +69,7 @@ export default {
 
 
     async add(interaction: ChatInputCommandInteraction<"cached">) {
-        if (!interaction.member.permissions.has("ManageRoles")) return await interaction.reply(Messages.error("You need to be an administrator to use this command!", {ephemeral: true}));
+        if (!interaction.member.permissions.has("ManageRoles")) return await interaction.reply(Messages.error("You need the `Manage Roles` permission to use this command!", {ephemeral: true}));
         await interaction.deferReply({ephemeral: true});
         const targetUser = interaction.options.getUser("user", true);
         const roleName = interaction.options.getString("role", true);
