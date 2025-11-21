@@ -1,12 +1,12 @@
 // src/types.ts
-import {AutocompleteInteraction, BaseInteraction, ButtonInteraction, ChatInputCommandInteraction, Collection, ModalSubmitInteraction, RoleSelectMenuInteraction, SlashCommandBuilder, StringSelectMenuInteraction, type AnySelectMenuInteraction} from "discord.js";
+import {AutocompleteInteraction, BaseInteraction, ButtonInteraction, ChatInputCommandInteraction, Collection, ModalSubmitInteraction, RoleSelectMenuInteraction, SlashCommandBuilder, StringSelectMenuInteraction} from "discord.js";
 
 
 // Extend the Discord.js Client interface globally
 declare module "discord.js" {
     interface Client {
         cpuUsage: NodeJS.CpuUsage;
-        commands: Collection<string, CommandModule>
+        commands: Collection<string, CommandModule>;
     }
 }
 
@@ -19,7 +19,7 @@ export type CommandModule = {
     modal: <T extends BaseInteraction = ModalSubmitInteraction>(i: T) => unknown;
     select: <T extends BaseInteraction = StringSelectMenuInteraction>(i: T) => unknown;
     role: <T extends BaseInteraction = RoleSelectMenuInteraction>(i: T) => unknown;
-}
+};
 
 export interface EventModule {
     name: string;
@@ -30,5 +30,18 @@ export interface EventModule {
 export interface CommandStats {
     commands?: {
         [key: string]: number;
-    }
+    };
+}
+
+export interface GuildSettings {
+    cleanOnJoin?: boolean;
+    inviteChannel?: string;
+    invitefilter?: boolean;
+    detectspam?: boolean;
+    modlog?: string;
+    joinleave?: string;
+}
+
+export interface UserInstallNotice {
+    lastNotified: number;
 }

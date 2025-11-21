@@ -36,8 +36,8 @@ async function setCommands(globalCommands: RESTPostAPIChatInputApplicationComman
             const result = await api.applicationCommands.bulkOverwriteGuildCommands(process.env.BOT_CLIENT_ID!, process.env.BOT_GUILD_ID, guildCommands);
             console.log(`✅ Successfully ${shouldClear ? "cleared" : `registered ${result.length}`} guild commands.`);
         }
-    catch (error) {
-        console.error(`❌ Failed to ${shouldClear ? "clear" : "register"} guild commands:`, error);
+        catch (error) {
+            console.error(`❌ Failed to ${shouldClear ? "clear" : "register"} guild commands:`, error);
         }
     }
     else if (!process.env.BOT_GUILD_ID) {
@@ -55,7 +55,7 @@ if (!shouldClear) {
 
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
-        const commandModule = await import(pathToFileURL(filePath).href) as CommandModule | {default: CommandModule};
+        const commandModule = await import(pathToFileURL(filePath).href) as CommandModule | {default: CommandModule;};
         const command = ("default" in commandModule) ? commandModule.default : commandModule;
 
         if (!command.data) {

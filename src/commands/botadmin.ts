@@ -21,7 +21,7 @@ export default {
                     c.setName("channel").setDescription("Sends a message to the specified channel.")
                         .addChannelOption(opt =>
                             opt.setName("channel").setDescription("Channel to send a message.").setRequired(true)
-                            .addChannelTypes(ChannelType.GuildText)
+                                .addChannelTypes(ChannelType.GuildText)
                         )
                 )
         )
@@ -49,6 +49,7 @@ export default {
 
 
     async channel(interaction: ChatInputCommandInteraction) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         return await this.send(interaction, interaction.options.getChannel("channel", true) as TextChannel);
     },
 
@@ -67,7 +68,7 @@ export default {
                             .setStyle(TextInputStyle.Paragraph).setRequired(true)
                             .setMaxLength(2000).setValue("")
                     )
-                );
+            );
 
 
         await interaction.showModal(modal);

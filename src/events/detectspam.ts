@@ -63,25 +63,25 @@ export default {
         }
 
         const modlogId = current.modlog;
-        const modlogChannel = message.guild.channels.cache.get(modlogId);
+        const modlogChannel = message.guild.channels.cache.get(modlogId!);
         if (!modlogId || !modlogChannel || !modlogChannel.isTextBased()) return; // Can't log
 
         const dEmbed = new EmbedBuilder().setColor(Colors.Info)
             .setAuthor({name: message.author.username, iconURL: message.author.displayAvatarURL()})
-            .setDescription(`Message sent by ${message.author.username} in ${message.channel}\n\n` + message.content)
+            .setDescription(`Message sent by ${message.author.username} in ${message.channel.name}\n\n` + message.content)
             .addFields({name: "Reason", value: reason})
             .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
-        modlogChannel.send({embeds: [dEmbed]});
+        await modlogChannel.send({embeds: [dEmbed]});
 
 
         if (didMute) {
             const mEmbed = new EmbedBuilder().setColor(Colors.Info)
                 .setAuthor({name: "Member Muted", iconURL: message.author.displayAvatarURL()})
-                .setDescription(`${message.author} ${message.author.tag}`)
+                .setDescription(`${message.author.displayName} ${message.author.tag}`)
                 .addFields({name: "Reason", value: reason})
                 .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
 
-            modlogChannel.send({embeds: [mEmbed]});
+            await modlogChannel.send({embeds: [mEmbed]});
         }
     },
 };

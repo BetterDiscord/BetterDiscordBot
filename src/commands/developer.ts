@@ -20,7 +20,7 @@ export default {
                 )
                 .addStringOption(opt =>
                     opt.setName("role").setDescription("Role to add.").setRequired(true)
-                    .addChoices({name: "Plugin Developer", value: "Plugin Developer"}, {name: "Theme Developer", value: "Theme Developer"})
+                        .addChoices({name: "Plugin Developer", value: "Plugin Developer"}, {name: "Theme Developer", value: "Theme Developer"})
                 )
         )
         .addSubcommand(
@@ -41,10 +41,6 @@ export default {
 
 
     async execute(interaction: ChatInputCommandInteraction<"cached">) {
-        // TODO: change the deploy-commands script to allow setting guild commands for individual servers to render this check unnecessary
-        if (interaction?.guild?.id !== "947985618502307840") return await Messages.error("This action can only be performed in the BD Developer Community server", {ephemeral: true});
-        if (!interaction.member.roles.cache.has("948627723830591568") && !interaction.member.roles.cache.has("948647556450246717")) return await Messages.error("This action can only be performed by plugin and theme reviewers", {ephemeral: true});
-
         const command = interaction.options.getSubcommand();
         if (command === "channel") return await this.channel(interaction);
         if (command === "sync") return await this.sync(interaction);
@@ -53,6 +49,7 @@ export default {
 
 
     async channel(interaction: ChatInputCommandInteraction<"cached">) {
+        if (!interaction.member.permissions.has("Administrator")) return await interaction.reply(Messages.error("You need to be an administrator to use this command!", {ephemeral: true}));
         const targetChannelId = interaction.options.getString("channel");
 
         // const targetGuild = await interaction.client.guilds.fetch(targetGuildId);
@@ -72,6 +69,7 @@ export default {
 
 
     async add(interaction: ChatInputCommandInteraction<"cached">) {
+        if (!interaction.member.permissions.has("ManageRoles")) return await interaction.reply(Messages.error("You need to be an administrator to use this command!", {ephemeral: true}));
         await interaction.deferReply({ephemeral: true});
         const targetUser = interaction.options.getUser("user", true);
         const roleName = interaction.options.getString("role", true);

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import {ActivityType, Client, Collection, GatewayIntentBits, Partials} from "discord.js";
-import type {CommandModule} from "./types";
+import type {CommandModule, EventModule} from "./types";
 import {pathToFileURL} from "node:url";
 
 
@@ -28,7 +28,7 @@ const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith("
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
-    const command: CommandModule | {default: CommandModule} = await import(pathToFileURL(filePath).href);
+    const command = await import(pathToFileURL(filePath).href) as {default: CommandModule;};
 
     // Handle both default and named exports
     const commandData = "default" in command ? command.default : command;
@@ -43,16 +43,16 @@ const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".ts"
 
 for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
-    const event = await import(pathToFileURL(filePath).href);
+    const event = await import(pathToFileURL(filePath).href) as {default: EventModule;};
     // Handle both default and named exports
     const eventData = event.default || event;
     if (eventData.once) {
-        client.once(eventData.name, (...args) => eventData.execute(...args));
+        client.once(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
     }
     else {
-        client.on(eventData.name, (...args) => eventData.execute(...args));
+        client.on(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
     }
 }
 
 // Login to Discord with your client's token
-client.login(process.env.BOT_TOKEN);
+// await client.login(process.env.BOT_TOKEN);

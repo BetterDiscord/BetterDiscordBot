@@ -16,16 +16,16 @@ export default {
         .setDMPermission(false)
         .addSubcommand(
             c => c.setName("join").setDescription("Toggles automatically cleaning new members when they join.")
-            .addBooleanOption((/** @type {import("@discordjs/builders").SlashCommandBooleanOption} */ option) =>
-                option.setName("enabled")
-                    .setDescription("Whether members should have their display name cleaned upon joining.")
-                    .setRequired(true)))
+                .addBooleanOption((/** @type {import("@discordjs/builders").SlashCommandBooleanOption} */ option) =>
+                    option.setName("enabled")
+                        .setDescription("Whether members should have their display name cleaned upon joining.")
+                        .setRequired(true)))
         .addSubcommand(
             c => c.setName("user").setDescription("Fixes a display name for a single user.")
-            .addUserOption((/** @type {import("@discordjs/builders").SlashCommandUserOption} */ option) =>
-                option.setName("user")
-                    .setDescription("Whose display name should be cleaned?")
-                    .setRequired(true)))
+                .addUserOption((/** @type {import("@discordjs/builders").SlashCommandUserOption} */ option) =>
+                    option.setName("user")
+                        .setDescription("Whose display name should be cleaned?")
+                        .setRequired(true)))
         .addSubcommand(c => c.setName("server").setDescription("Fixes all display names in the server.")),
 
 
@@ -119,7 +119,7 @@ export default {
 
 
     async join(interaction: ChatInputCommandInteraction<"cached">) {
-        const toEnable = interaction.options.getBoolean("enabled");
+        const toEnable = !!interaction.options.getBoolean("enabled");
         const guildSettings = await guildDB.get(interaction.guild.id) ?? {};
         const current = guildSettings.cleanOnJoin;
         if (current === toEnable) return await interaction.reply(Messages.info(`This setting was already ${current ? "enabled" : "disabled"}.`));

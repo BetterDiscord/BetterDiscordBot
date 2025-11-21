@@ -41,17 +41,17 @@ export default {
 
     async buttonUser(interaction: ButtonInteraction<"cached">) {
         const member = interaction.guild.members.cache.get(interaction.user.id)!;
-        const assignable = await selfrolesDB.get(interaction.guild.id);
+        const assignable = await selfrolesDB.get(interaction.guild.id) ?? [];
         const controls = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
             new StringSelectMenuBuilder().setCustomId("selfroles")
-            .setMinValues(0)
-            .setMaxValues(assignable.length)
-            .setOptions(assignable.map(
-                (roleId: string) => new StringSelectMenuOptionBuilder()
-                    .setLabel(interaction.guild.roles.cache.get(roleId)!.name)
-                    .setValue(roleId)
-                    .setDefault(member.roles.cache.has(roleId))
-            ))
+                .setMinValues(0)
+                .setMaxValues(assignable.length)
+                .setOptions(assignable.map(
+                    (roleId: string) => new StringSelectMenuOptionBuilder()
+                        .setLabel(interaction.guild.roles.cache.get(roleId)!.name)
+                        .setValue(roleId)
+                        .setDefault(member.roles.cache.has(roleId))
+                ))
         );
 
         await interaction.update(Messages.info("Please select which roles you want.", {components: [controls]}));
@@ -60,7 +60,7 @@ export default {
 
     async select(interaction: StringSelectMenuInteraction<"cached">) {
         const member = interaction.guild.members.cache.get(interaction.user.id)!;
-        const assignable = await selfrolesDB.get(interaction.guild.id);
+        const assignable = await selfrolesDB.get(interaction.guild.id) ?? [];
         try {
             if (assignable.length) await member.roles.remove(assignable);
             if (interaction.values.length) await member.roles.add(interaction.values);
