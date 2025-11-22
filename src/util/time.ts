@@ -1,7 +1,7 @@
-const msInSecond = 1000;
-const msInMinute = msInSecond * 60;
-const msInHour = msInMinute * 60;
-const msInDay = msInHour * 24;
+export const msInSecond = 1000;
+export const msInMinute = msInSecond * 60;
+export const msInHour = msInMinute * 60;
+export const msInDay = msInHour * 24;
 
 export function humanReadableUptime(uptime: number): string {
     let remainder = uptime;

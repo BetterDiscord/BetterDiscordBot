@@ -18,7 +18,7 @@ const client = new Client({
     partials: [
         Partials.Channel
     ],
-    presence: {activities: [{name: "for spam", type: ActivityType.Watching}]}
+    presence: {activities: [{name: "Watching for spam", type: ActivityType.Custom}]}
 });
 
 

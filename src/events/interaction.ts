@@ -38,8 +38,11 @@ export default {
 
         const command = interaction.client.commands.get(commandName);
         if (!commandName || !command || !command[executor]) {
-            console.error("Unrecognized interaction", commandName, executor);
-            if (interaction.isChatInputCommand() && interaction.isRepliable()) await interaction.reply({content: "Something went wrong! If this persists, please report it to the bot owner!", flags: MessageFlags.Ephemeral});
+            if (interaction.isChatInputCommand() && interaction.isRepliable()) {
+                console.error("Unrecognized interaction", commandName, executor);
+                await interaction.reply({content: "Something went wrong! If this persists, please report it to the bot owner!", flags: MessageFlags.Ephemeral});
+            }
+            // TODO: maybe add a pino logger here
             return;
         }
 

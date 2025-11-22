@@ -13,7 +13,7 @@ export default {
         if (message.inGuild() || message.author.bot) return;
         if (message.author.id === message.client.user.id) return;
         if (message.author.id === process.env.BOT_OWNER_ID) return;
-        const target = await globalDB.get("forwarding") ?? "";
+        const target = await globalDB.get("forwarding") as string ?? "";
         if (!target) return;
         const user = message.client.users.cache.get(target);
         if (!user) return;
