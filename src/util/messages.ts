@@ -1,4 +1,4 @@
-import {EmbedBuilder, type BaseMessageOptions, type ColorResolvable} from "discord.js";
+import {EmbedBuilder, MessageFlags, type BaseMessageOptions, type ColorResolvable} from "discord.js";
 import Colors from "./colors";
 
 
@@ -13,7 +13,9 @@ export default class Messages {
     static embed({description, color, ephemeral, components}: EmbedOptions) {
         // return new EmbedBuilder().setColor(color).setDescription(description);
         const embed = new EmbedBuilder().setColor(color).setDescription(description);
-        return {embeds: [embed], components, ephemeral: ephemeral};
+        const data: {embeds: EmbedBuilder[], components?: BaseMessageOptions["components"], flags?: number;} = {embeds: [embed], components};
+        if (ephemeral) data.flags = MessageFlags.Ephemeral;
+        return data;
     }
 
     static success(description: string, {ephemeral, components}: Partial<Omit<EmbedOptions, "description">> = {}) {

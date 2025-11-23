@@ -1,0 +1,192 @@
+import {ApplicationIntegrationType, AutocompleteInteraction, ChatInputCommandInteraction, ContainerBuilder, InteractionContextType, LabelBuilder, MessageFlags, ModalBuilder, PermissionFlagsBits, SectionBuilder, SlashCommandBuilder, TextDisplayBuilder, TextInputBuilder, TextInputStyle, ThumbnailBuilder} from "discord.js";
+import Messages from "../util/messages";
+import type {AtLeast, Tag} from "../types";
+import {tagsDB} from "../db";
+import {msInMinute} from "../util/time";
+
+
+function renderTag(tag: Tag) {
+    const container = new ContainerBuilder();
+
+    const title = tag.title ? new TextDisplayBuilder().setContent(`# ${tag.title}`) : null;
+    const content = new TextDisplayBuilder().setContent(tag.content);
+    const thumbnail = tag.thumbnailUrl ? new ThumbnailBuilder().setURL(tag.thumbnailUrl) : null;
+
+    // If there's a thumbnail, create a section with the thumbnail accessory
+    // Without a thumbnail or button, you apparently can't have a section with just text
+    if (thumbnail) {
+        const section = new SectionBuilder();
+        section.setThumbnailAccessory(thumbnail);
+        if (title) section.addTextDisplayComponents(title);
+        section.addTextDisplayComponents(content);
+        container.addSectionComponents(section);
+        return container;
+    }
+
+    if (title) container.addTextDisplayComponents(title);
+    container.addTextDisplayComponents(content);
+
+    return container;
+}
+
+export default {
+    data: new SlashCommandBuilder()
+        .setName("tag")
+        .setDescription("Saving and recalling custom tags.")
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+        .setContexts(InteractionContextType.Guild)
+        .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+        .addSubcommand(c => c.setName("list").setDescription("List all tags in this server"))
+        .addSubcommand(c => c.setName("view").setDescription("View a tag")
+            .addStringOption(opt => opt.setName("name").setDescription("Name of the tag to view").setRequired(true).setAutocomplete(true))
+        )
+        .addSubcommand(c => c.setName("update").setDescription("Update a tag")
+            .addStringOption(opt => opt.setName("name").setDescription("Name of the tag to update").setRequired(true).setAutocomplete(true))
+        )
+        .addSubcommand(c => c.setName("delete").setDescription("Delete a tag")
+            .addStringOption(opt => opt.setName("name").setDescription("Name of the tag to delete").setRequired(true).setAutocomplete(true))
+        )
+        .addSubcommand(c => c.setName("create").setDescription("Create a new tag")
+            .addStringOption(opt => opt.setName("name").setDescription("Name of the tag to create").setRequired(true).setAutocomplete(false))
+        ),
+
+    /**
+     * Main function for tag command
+     */
+    async execute(interaction: ChatInputCommandInteraction<"cached">) {
+        const command = interaction.options.getSubcommand();
+        if (command === "view") return await this.view(interaction);
+        if (command === "create") return await this.create(interaction);
+        if (command === "update") return await this.update(interaction);
+        if (command === "delete") return await this.delete(interaction);
+        if (command === "list") return await this.list(interaction);
+
+        return await interaction.editReply(Messages.error("This command is not yet implemented."));
+    },
+
+    async view(interaction: ChatInputCommandInteraction<"cached">) {
+        await interaction.deferReply();
+        const tagName = interaction.options.getString("name", true);
+        const guildTags = await tagsDB.get(interaction.guildId) ?? {};
+        const tag = guildTags[tagName];
+        if (!tag) {
+            return await interaction.editReply(Messages.error(`Tag with name \`${tagName}\` does not exist.`));
+        }
+
+        return await interaction.editReply({components: [renderTag(tag)], flags: MessageFlags.IsComponentsV2});
+    },
+
+    async create(interaction: ChatInputCommandInteraction<"cached">) {
+        const tagName = interaction.options.getString("name", true);
+        const guildTags = await tagsDB.get(interaction.guildId) ?? {};
+        const tag = guildTags[tagName];
+        if (tag) return await interaction.editReply(Messages.error(`Tag with name \`${tagName}\` already exists.`, {ephemeral: true}));
+
+        return await this.showTagModal(interaction, {name: tagName});
+    },
+
+    async update(interaction: ChatInputCommandInteraction<"cached">) {
+        const tagName = interaction.options.getString("name", true);
+        const guildTags = await tagsDB.get(interaction.guildId) ?? {};
+        const tag = guildTags[tagName];
+        if (!tag) return await interaction.editReply(Messages.error(`Tag with name \`${tagName}\` does not exist.`, {ephemeral: true}));
+
+        return await this.showTagModal(interaction, tag);
+    },
+
+    async delete(interaction: ChatInputCommandInteraction<"cached">) {
+        await interaction.deferReply({flags: MessageFlags.Ephemeral});
+        const tagName = interaction.options.getString("name", true);
+        const guildTags = await tagsDB.get(interaction.guildId) ?? {};
+        const tag = guildTags[tagName];
+        if (!tag) {
+            return await interaction.editReply(Messages.error(`Tag with name \`${tagName}\` does not exist.`, {ephemeral: true}));
+        }
+
+        delete guildTags[tagName];
+        await tagsDB.set(interaction.guildId, guildTags);
+
+        return await interaction.editReply(Messages.success(`Tag with name \`${tagName}\` has been deleted.`, {ephemeral: true}));
+    },
+
+    async list(interaction: ChatInputCommandInteraction<"cached">) {
+        await interaction.deferReply({flags: MessageFlags.Ephemeral});
+        const guildTags = await tagsDB.get(interaction.guildId) ?? {};
+        const tagNames = Object.keys(guildTags);
+        if (tagNames.length === 0) {
+            return await interaction.editReply(Messages.info("There are no tags in this server yet.", {ephemeral: true}));
+        }
+
+        const rendered = new ContainerBuilder();
+        const section = new SectionBuilder();
+        section.addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`**Tags in this server:**\n${tagNames.map(name => `- \`${name}\``).join("\n")}`)
+        );
+        rendered.addSectionComponents(section);
+
+        return await interaction.editReply({components: [rendered]});
+    },
+
+
+    async showTagModal(interaction: ChatInputCommandInteraction<"cached">, tag: AtLeast<Tag, "name">) {
+        const isUpdating = !!tag.content;
+        const modal = new ModalBuilder().setCustomId("tagmodal").setTitle(`${isUpdating ? "Update" : "Create"} Tag: ${tag.name}`);
+        const titleLabel = new LabelBuilder().setLabel("Tag Title (optional)").setTextInputComponent(
+            new TextInputBuilder().setCustomId("title").setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(100).setValue(tag.title || "")
+        );
+        const thumbnailLabel = new LabelBuilder().setLabel("Tag Thumbnail URL (optional)").setTextInputComponent(
+            new TextInputBuilder().setCustomId("thumbnail").setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(2000).setValue(tag.thumbnailUrl || "")
+        );
+        const contentLabel = new LabelBuilder().setLabel("Tag Content").setTextInputComponent(
+            new TextInputBuilder().setCustomId("content").setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(2000).setValue(tag.content || "")
+        );
+
+        modal.addLabelComponents(titleLabel, contentLabel, thumbnailLabel);
+
+        await interaction.showModal(modal);
+
+        try {
+            const modalInteraction = await interaction.awaitModalSubmit({time: msInMinute * 5});
+            const title = modalInteraction.fields.getTextInputValue("title");
+            const content = modalInteraction.fields.getTextInputValue("content");
+            const thumbnailUrl = modalInteraction.fields.getTextInputValue("thumbnail");
+
+            const guildTags = await tagsDB.get(interaction.guildId) ?? {};
+            guildTags[tag.name] = {
+                name: tag.name,
+                title: title || undefined,
+                content,
+                thumbnailUrl: thumbnailUrl || undefined,
+            };
+            await tagsDB.set(interaction.guildId, guildTags);
+
+            await modalInteraction.reply(Messages.success(`Tag \`${tag.name}\` has been ${isUpdating ? "updated" : "created"} successfully!`, {ephemeral: true}));
+        }
+        catch {
+            await interaction.followUp(Messages.error("Modal submission timed out!", {ephemeral: true}));
+        }
+    },
+
+
+    /**
+     * Autocomplete handlers for tags
+     */
+    async autocomplete(interaction: AutocompleteInteraction<"cached">) {
+        const focusedValue = interaction.options.getFocused();
+
+        if (interaction.options.getSubcommand() === "view" || interaction.options.getSubcommand() === "update" || interaction.options.getSubcommand() === "delete") {
+            const guildTags = await tagsDB.get(interaction.guildId) ?? {};
+            const tags = Object.keys(guildTags);
+
+            const filtered = tags.filter(tag => tag.toLowerCase().startsWith(focusedValue.toLowerCase()));
+            const limited = filtered.slice(0, 25);
+
+            return await interaction.respond(
+                limited.map(tag => ({name: tag, value: tag}))
+            );
+        }
+
+        return await interaction.respond([]);
+    },
+};
+

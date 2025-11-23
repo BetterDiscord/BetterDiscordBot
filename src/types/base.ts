@@ -10,6 +10,8 @@ declare module "discord.js" {
     }
 }
 
+export type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
+
 export type CommandModule = {
     data: SlashCommandBuilder;
     owner?: boolean;
@@ -44,4 +46,11 @@ export interface GuildSettings {
 
 export interface UserInstallNotice {
     lastNotified: number;
+}
+
+export interface Tag {
+    name: string;
+    title?: string;
+    content: string;
+    thumbnailUrl?: string;
 }
