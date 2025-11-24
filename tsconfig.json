@@ -5,6 +5,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
+    "jsx": "preserve",
     "allowJs": false,
 
     // Bundler mode
@@ -27,10 +28,17 @@
     "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false,
     "forceConsistentCasingInFileNames": true,
+
+    // Import aliases
+    "paths": {
+        "@djsx": ["./djsx/index.ts"],
+        "@djsx/*": ["./djsx/*"],
+    }
   },
   "include": [
     "src/**/*",
     "scripts/*",
-    "tests/**/*"
+    "tests/**/*",
+    "djsx/**/*"
   ],
 }

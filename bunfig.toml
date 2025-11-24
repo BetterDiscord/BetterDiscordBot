@@ -1,0 +1,4 @@
+jsx = "react-jsx"
+jsxFactory = "createElement"
+jsxFragment = "Fragment"
+jsxImportSource = "@djsx"
