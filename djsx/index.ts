@@ -11,6 +11,7 @@ export * from "./Separator";
 
 export * from "./TextDisplay";
 export * from "./Label.tsx";
+export * from "./Modal.tsx";
 
 export * from "./File";
 export * from "./FileUpload";

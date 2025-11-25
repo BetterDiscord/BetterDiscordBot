@@ -29,7 +29,8 @@ export function childrenToArray<T>(children: T | T[]): T[] {
 }
 
 export function singleChild<T>(name: string, children: T | T[]): T {
-    if (!Array.isArray(children) || children.length !== 1) {
+    if (!Array.isArray(children)) return children;
+    if (Array.isArray(children) && children.length !== 1) {
         throw new Error(`${name} must have exactly one child`);
     }
 

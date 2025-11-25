@@ -1,13 +1,14 @@
-import {ComponentType, type LabelModalData, type ModalData} from "discord.js";
+import {ComponentType, type LabelComponentData} from "discord.js";
 import {singleChild} from "./utils";
 
 
-export type LabelProps = Omit<LabelModalData, "type" | "component"> & {children: LabelModalData["component"];};
+export type LabelProps = Omit<LabelComponentData, "type" | "component"> & {children: LabelComponentData["component"];};
 
-export function ModalLabel({children, ...restProps}: LabelProps): LabelModalData {
+export function ModalLabel({children, ...restProps}: LabelProps): LabelComponentData {
+    console.log("ModalLabel called with children:", children);
     return {
         type: ComponentType.Label,
-        component: singleChild("ModalLabel", children) as ModalData,
+        component: singleChild("ModalLabel", children) as LabelComponentData["component"],
         ...restProps
     };
 }

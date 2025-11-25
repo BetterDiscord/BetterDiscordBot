@@ -33,6 +33,7 @@
   "overrides": {
     "sqlite3": {
       "prebuild-install": "7.1.3"
-    }
+    },
+    "react": "./djsx/index.ts"
   }
 }

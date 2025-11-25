@@ -1,33 +1,11 @@
-import {ApplicationIntegrationType, AutocompleteInteraction, ChatInputCommandInteraction, ContainerBuilder, InteractionContextType, LabelBuilder, MessageFlags, ModalBuilder, PermissionFlagsBits, SectionBuilder, SlashCommandBuilder, TextDisplayBuilder, TextInputBuilder, TextInputStyle, ThumbnailBuilder} from "discord.js";
+import {ApplicationIntegrationType, AutocompleteInteraction, ChatInputCommandInteraction, ContainerBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, SectionBuilder, SlashCommandBuilder, TextDisplayBuilder, type ModalComponentData} from "discord.js";
 import Messages from "../util/messages";
 import type {AtLeast, Tag} from "../types";
 import {tagsDB} from "../db";
 import {msInMinute} from "../util/time";
+import {Tag as TagComponent, UpdateTagModal} from "../components/tags";
+import {ComponentMessage, type MessageOptions} from "@djsx";
 
-
-function renderTag(tag: Tag) {
-    const container = new ContainerBuilder();
-
-    const title = tag.title ? new TextDisplayBuilder().setContent(`# ${tag.title}`) : null;
-    const content = new TextDisplayBuilder().setContent(tag.content);
-    const thumbnail = tag.thumbnailUrl ? new ThumbnailBuilder().setURL(tag.thumbnailUrl) : null;
-
-    // If there's a thumbnail, create a section with the thumbnail accessory
-    // Without a thumbnail or button, you apparently can't have a section with just text
-    if (thumbnail) {
-        const section = new SectionBuilder();
-        section.setThumbnailAccessory(thumbnail);
-        if (title) section.addTextDisplayComponents(title);
-        section.addTextDisplayComponents(content);
-        container.addSectionComponents(section);
-        return container;
-    }
-
-    if (title) container.addTextDisplayComponents(title);
-    container.addTextDisplayComponents(content);
-
-    return container;
-}
 
 export default {
     data: new SlashCommandBuilder()
@@ -73,7 +51,11 @@ export default {
             return await interaction.editReply(Messages.error(`Tag with name \`${tagName}\` does not exist.`));
         }
 
-        return await interaction.editReply({components: [renderTag(tag)], flags: MessageFlags.IsComponentsV2});
+        return await interaction.editReply(
+            (<ComponentMessage>
+                <TagComponent {...tag} />
+            </ComponentMessage>) as MessageOptions
+        );
     },
 
     async create(interaction: ChatInputCommandInteraction<"cached">) {
@@ -130,20 +112,8 @@ export default {
 
     async showTagModal(interaction: ChatInputCommandInteraction<"cached">, tag: AtLeast<Tag, "name">) {
         const isUpdating = !!tag.content;
-        const modal = new ModalBuilder().setCustomId("tagmodal").setTitle(`${isUpdating ? "Update" : "Create"} Tag: ${tag.name}`);
-        const titleLabel = new LabelBuilder().setLabel("Tag Title (optional)").setTextInputComponent(
-            new TextInputBuilder().setCustomId("title").setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(100).setValue(tag.title || "")
-        );
-        const thumbnailLabel = new LabelBuilder().setLabel("Tag Thumbnail URL (optional)").setTextInputComponent(
-            new TextInputBuilder().setCustomId("thumbnail").setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(2000).setValue(tag.thumbnailUrl || "")
-        );
-        const contentLabel = new LabelBuilder().setLabel("Tag Content").setTextInputComponent(
-            new TextInputBuilder().setCustomId("content").setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(2000).setValue(tag.content || "")
-        );
 
-        modal.addLabelComponents(titleLabel, contentLabel, thumbnailLabel);
-
-        await interaction.showModal(modal);
+        await interaction.showModal(<UpdateTagModal {...tag} /> as ModalComponentData);
 
         try {
             const modalInteraction = await interaction.awaitModalSubmit({time: msInMinute * 5});

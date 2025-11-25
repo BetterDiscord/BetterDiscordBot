@@ -2,7 +2,7 @@ import {MessageFlags, type BaseMessageOptions, type InteractionEditReplyOptions,
 import {childrenToArray} from "./utils";
 
 
-type MessageOptions = InteractionReplyOptions & InteractionEditReplyOptions;
+export type MessageOptions = InteractionReplyOptions & InteractionEditReplyOptions;
 export type ComponentMessageProps = Omit<MessageOptions, "components" | "flags"> & {children: Required<BaseMessageOptions>["components"]; flags?: number;};
 
 export function ComponentMessage({children, flags, ...props}: ComponentMessageProps): MessageOptions {
