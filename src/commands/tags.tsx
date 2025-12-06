@@ -11,9 +11,8 @@ export default {
     data: new SlashCommandBuilder()
         .setName("tag")
         .setDescription("Saving and recalling custom tags.")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .setContexts(InteractionContextType.Guild)
-        .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+        .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
         .addSubcommand(c => c.setName("list").setDescription("List all tags in this server"))
         .addSubcommand(c => c.setName("view").setDescription("View a tag")
             .addStringOption(opt => opt.setName("name").setDescription("Name of the tag to view").setRequired(true).setAutocomplete(true))
@@ -59,6 +58,7 @@ export default {
     },
 
     async create(interaction: ChatInputCommandInteraction<"cached">) {
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(Messages.error("You do not have permission to create tags.", {ephemeral: true}));
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
@@ -68,6 +68,7 @@ export default {
     },
 
     async update(interaction: ChatInputCommandInteraction<"cached">) {
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(Messages.error("You do not have permission to update tags.", {ephemeral: true}));
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
@@ -77,6 +78,7 @@ export default {
     },
 
     async delete(interaction: ChatInputCommandInteraction<"cached">) {
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(Messages.error("You do not have permission to delete tags.", {ephemeral: true}));
         await interaction.deferReply({flags: MessageFlags.Ephemeral});
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
