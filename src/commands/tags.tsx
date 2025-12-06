@@ -1,10 +1,10 @@
-import {ApplicationIntegrationType, AutocompleteInteraction, ChatInputCommandInteraction, ContainerBuilder, InteractionContextType, MessageFlags, SectionBuilder, SlashCommandBuilder, TextDisplayBuilder, type ModalComponentData} from "discord.js";
+import {ApplicationIntegrationType, AutocompleteInteraction, ChatInputCommandInteraction, ContainerBuilder, InteractionContextType, MessageFlags, SectionBuilder, SlashCommandBuilder, TextDisplayBuilder, TextDisplayComponent, type ModalComponentData} from "discord.js";
 import Messages from "../util/messages";
 import type {AtLeast, Tag} from "../types";
 import {tagsDB} from "../db";
 import {msInMinute} from "../util/time";
 import {Tag as TagComponent, UpdateTagModal} from "../components/tags";
-import {ComponentMessage, type MessageOptions} from "@djsx";
+import {ComponentMessage, Container, TextDisplay, type MessageOptions} from "@djsx";
 
 
 export default {
@@ -101,14 +101,13 @@ export default {
             return await interaction.editReply(Messages.info("There are no tags in this server yet.", {ephemeral: true}));
         }
 
-        const rendered = new ContainerBuilder();
-        const section = new SectionBuilder();
-        section.addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(`**Tags in this server:**\n${tagNames.map(name => `- \`${name}\``).join("\n")}`)
+        return await interaction.editReply(
+            <ComponentMessage>
+                <Container>
+                    <TextDisplay>{`**Tags in this server:**\n${tagNames.map(name => `- \`${name}\``).join("\n")}`}</TextDisplay>
+                </Container>
+            </ComponentMessage> as MessageOptions
         );
-        rendered.addSectionComponents(section);
-
-        return await interaction.editReply({components: [rendered]});
     },
 
 
