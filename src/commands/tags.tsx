@@ -1,4 +1,4 @@
-import {ApplicationIntegrationType, AutocompleteInteraction, ChatInputCommandInteraction, ContainerBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, SectionBuilder, SlashCommandBuilder, TextDisplayBuilder, type ModalComponentData} from "discord.js";
+import {ApplicationIntegrationType, AutocompleteInteraction, ChatInputCommandInteraction, ContainerBuilder, InteractionContextType, MessageFlags, SectionBuilder, SlashCommandBuilder, TextDisplayBuilder, type ModalComponentData} from "discord.js";
 import Messages from "../util/messages";
 import type {AtLeast, Tag} from "../types";
 import {tagsDB} from "../db";

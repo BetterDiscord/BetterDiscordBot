@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Create a new REST instance
-const rest = new REST({version: "10"}).setToken(process.env.BOT_TOKEN!);
+const rest = new REST().setToken(process.env.BOT_TOKEN!);
 const api = new API(rest);
 
 async function setCommands(globalCommands: RESTPostAPIChatInputApplicationCommandsJSONBody[], guildCommands: RESTPostAPIChatInputApplicationCommandsJSONBody[]) {
@@ -51,7 +51,7 @@ if (!shouldClear) {
     const commands = [];
     const ownerCommands = [];
     const commandsPath = path.join(__dirname, "..", "src", "commands");
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".ts"));
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".ts") || file.endsWith(".tsx"));
 
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);
