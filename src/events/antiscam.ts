@@ -15,7 +15,6 @@ export default {
 
     const linkAmount = Array.from(content.matchAll(URL_REGEX));
     const guildMember = message.guild?.members.cache.get(message.author.id);
-    console.log(guildMember?.permissions);
     if (linkAmount.length == 4 && guildMember && !isStaff(guildMember)) {
       try {
         const reply = await message.reply(
