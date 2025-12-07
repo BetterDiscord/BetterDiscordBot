@@ -12,12 +12,16 @@ export default {
 
     const linkAmount = Array.from(content.matchAll(URL_REGEX));
     if (linkAmount.length == 4) {
-      await message.reply(
-        Messages.error("This message contains potential scam material.", {
-          ephemeral: true,
-        })
-      );
-      await message.delete();
+      try {
+        await message.reply(
+          Messages.error("This message contains potential scam material.", {
+            ephemeral: true,
+          })
+        );
+        await message.delete();
+      } catch (error) {
+        // this should never happen but this is so the bot doesnt disconect.
+      }
     }
   },
 };
