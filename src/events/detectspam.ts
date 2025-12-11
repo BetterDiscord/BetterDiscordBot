@@ -1,12 +1,61 @@
-import {EmbedBuilder, Events, Message, PermissionFlagsBits} from "discord.js";
-import {guildDB} from "../db";
+import { EmbedBuilder, Events, Message, PermissionFlagsBits } from "discord.js";
+import { guildDB } from "../db";
 import Colors from "../util/colors";
+import Messages from "../util/messages";
 
 
-const fakeDiscordRegex = new RegExp(`([a-zA-Z-\\.]+)?d[il][il]?scorr?(cl|[ldb])([a-zA-Z-\\.]+)?\\.(com|net|app|gift|ru|uk)`, "ig");
-const okayDiscordRegex = new RegExp(`([a-zA-Z-\\.]+\\.)?discord((?:app)|(?:status))?\\.(com|net|app)`, "i");
-const fakeSteamRegex = new RegExp(`str?e[ea]?mcomm?m?un[un]?[un]?[tl]?[il][tl]?ty\\.(com|net|ru|us)`, "ig");
-const sketchyRuRegex = new RegExp(`([a-zA-Z-\\.]+).ru.com`, "ig");
+type Patterns = {
+    regex: RegExp,
+    whitelist: string[],
+    mute: boolean,
+    predicate: (links: [], self: Patterns) => boolean,
+    reason: string,
+}
+
+const phishingPatterns = [
+    {
+        regex: /([a-zA-Z-\\.]+)?d[il][il]?scorr?(cl|[ldb])([a-zA-Z-\\.]+)?\.(com|net|app|gift|ru|uk)/ig,
+        whitelist: ['discord.com', 'discordapp.com'],
+        mute: true,
+        predicate: (links, self) => {
+            const hosts = links.map(match => {
+                const url = match[0];
+                return URL.parse(url)?.host;
+            }).filter(Boolean);
+            return hosts.some(host => !self.whitelist.includes(host));
+        },
+        reason: 'Fake Discord Domain'
+    },
+    {
+        regex: /str?e[ea]?mcomm?m?un[un]?[un]?[tl]?[il][tl]?ty\.(com|net|ru|us)/ig,
+        whitelist: ['steamcommunity.com'],
+        mute: true,
+        predicate: (links, self) => {
+            const hosts = links.map(match => {
+                const url = match[0];
+                return URL.parse(url)?.host;
+            });
+
+            return hosts.some(host => !self.whitelist.includes(host));
+        },
+        reason: 'Fake Steam Link'
+    },
+    {
+        regex: /([a-zA-Z-\\.]+)\.ru\.com/ig,
+        whitelist: [],
+        mute: true,
+        predicate: (links, self) => links.length > 0,
+        reason: 'Suspicious .ru.com Domain'
+    },
+    {
+        regex: /(?:http[s]?:\/\/.)?(?:www\.)?[-a-zA-Z0-9@%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/ig,
+        whitelist: [],
+        mute: true,
+        predicate: (links, self) => links.length == self.maxCount, // this should probably be more than 4 later on.
+        reason: 'Potential Scam Message',
+        maxCount: 4
+    }
+] as Patterns[]
 
 // TODO: consider de-duping with invitefilter event
 export default {
@@ -22,29 +71,44 @@ export default {
         const current = await guildDB.get(message.guild.id) ?? {};
         if (!current?.detectspam) return;
 
+        /*
+                const fakeDiscordMatches = message.content.match(fakeDiscordRegex) || [];
+                const fakeSteamMatches = message.content.match(fakeSteamRegex) || [];
+                const isFakeDiscord = fakeDiscordMatches.some(s => {
+                    if (okayDiscordRegex.test(s)) return false;
+                    else if (s.toLowerCase() === "betterdiscord.app") return false;
+                    return true;
+                });
+                const isFakeSteam = fakeSteamMatches.some(s => s.toLowerCase() !== "steamcommunity.com");
+                const isSketchy = sketchyRuRegex.test(message.content);
+                if (!isFakeDiscord && !isFakeSteam && !isSketchy) return; // Not spam, let's get out of here
+        
+                let reason = "Sketchy Link";
+                if (isFakeDiscord) reason = "Fake Discord Link";
+                if (isFakeSteam) reason = "Fake Steam Link";
+        
+                try {
+                    await message.delete();
+                }
+                catch {
+                    // TODO: logging?
+                    console.error("Could not delete detect spam message. Likely permissions.");
+                }*/
 
-        const fakeDiscordMatches = message.content.match(fakeDiscordRegex) || [];
-        const fakeSteamMatches = message.content.match(fakeSteamRegex) || [];
-        const isFakeDiscord = fakeDiscordMatches.some(s => {
-            if (okayDiscordRegex.test(s)) return false;
-            else if (s.toLowerCase() === "betterdiscord.app") return false;
-            return true;
-        });
-        const isFakeSteam = fakeSteamMatches.some(s => s.toLowerCase() !== "steamcommunity.com");
-        const isSketchy = sketchyRuRegex.test(message.content);
-        if (!isFakeDiscord && !isFakeSteam && !isSketchy) return; // Not spam, let's get out of here
+        let reasons: string[] = [];
 
-        let reason = "Sketchy Link";
-        if (isFakeDiscord) reason = "Fake Discord Link";
-        if (isFakeSteam) reason = "Fake Steam Link";
+        for (var pattern of phishingPatterns) {
+            const links = Array.from(message.content.matchAll(pattern.regex))
+            const shouldReason = pattern.predicate(links, pattern)
+            if (shouldReason) {
+                reasons.push(pattern.reason)
+            }
+        }
 
-        try {
+        if (reasons.length > 0) {
             await message.delete();
         }
-        catch {
-            // TODO: logging?
-            console.error("Could not delete detect spam message. Likely permissions.");
-        }
+
 
         let didMute = false;
         const muteRoleId = message.guild.roles.cache.findKey(r => r.name.toLowerCase().includes("mute"));
@@ -67,21 +131,21 @@ export default {
         if (!modlogId || !modlogChannel || !modlogChannel.isTextBased()) return; // Can't log
 
         const dEmbed = new EmbedBuilder().setColor(Colors.Info)
-            .setAuthor({name: message.author.username, iconURL: message.author.displayAvatarURL()})
+            .setAuthor({ name: message.author.username, iconURL: message.author.displayAvatarURL() })
             .setDescription(`Message sent by ${message.author.username} in ${message.channel.name}\n\n` + message.content)
-            .addFields({name: "Reason", value: reason})
-            .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
-        await modlogChannel.send({embeds: [dEmbed]});
+            .addFields({ name: "Reason(s)", value: reasons.join(', ') })
+            .setFooter({ text: `ID: ${message.author.id}` }).setTimestamp(message.createdTimestamp);
+        await modlogChannel.send({ embeds: [dEmbed] });
 
 
         if (didMute) {
             const mEmbed = new EmbedBuilder().setColor(Colors.Info)
-                .setAuthor({name: "Member Muted", iconURL: message.author.displayAvatarURL()})
+                .setAuthor({ name: "Member Muted", iconURL: message.author.displayAvatarURL() })
                 .setDescription(`${message.author.displayName} ${message.author.tag}`)
-                .addFields({name: "Reason", value: reason})
-                .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
+                .addFields({ name: "Reason(s)", value: reasons.join(', ') })
+                .setFooter({ text: `ID: ${message.author.id}` }).setTimestamp(message.createdTimestamp);
 
-            await modlogChannel.send({embeds: [mEmbed]});
+            await modlogChannel.send({ embeds: [mEmbed] });
         }
     },
 };
