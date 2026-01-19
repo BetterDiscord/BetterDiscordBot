@@ -1,26 +1,24 @@
-import { EmbedBuilder, Events, Message, PermissionFlagsBits } from "discord.js";
-import { guildDB } from "../db";
+import {EmbedBuilder, Events, Message, PermissionFlagsBits} from "discord.js";
+import {guildDB} from "../db";
 import Colors from "../util/colors";
-import Messages from "../util/messages";
-
 
 type Patterns = {
     regex: RegExp,
     whitelist: string[],
-    mute: boolean,
-    predicate: (links: [], self: Patterns) => boolean,
+    predicate: (links: RegExpMatchArray[], self: Patterns) => boolean,
     reason: string,
+    maxCount?: number,
 }
 
 const phishingPatterns = [
     {
         regex: /([a-zA-Z-\\.]+)?d[il][il]?scorr?(cl|[ldb])([a-zA-Z-\\.]+)?\.(com|net|app|gift|ru|uk)/ig,
         whitelist: ['discord.com', 'discordapp.com'],
-        mute: true,
         predicate: (links, self) => {
             const hosts = links.map(match => {
                 const url = match[0];
-                return URL.parse(url)?.host;
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                return URL.parse(fullUrl)?.host;
             }).filter(Boolean);
             return hosts.some(host => !self.whitelist.includes(host));
         },
@@ -29,12 +27,12 @@ const phishingPatterns = [
     {
         regex: /str?e[ea]?mcomm?m?un[un]?[un]?[tl]?[il][tl]?ty\.(com|net|ru|us)/ig,
         whitelist: ['steamcommunity.com'],
-        mute: true,
         predicate: (links, self) => {
             const hosts = links.map(match => {
                 const url = match[0];
-                return URL.parse(url)?.host;
-            });
+                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+                return URL.parse(fullUrl)?.host;
+            }).filter(Boolean);
 
             return hosts.some(host => !self.whitelist.includes(host));
         },
@@ -43,14 +41,18 @@ const phishingPatterns = [
     {
         regex: /([a-zA-Z-\\.]+)\.ru\.com/ig,
         whitelist: [],
-        mute: true,
-        predicate: (links, self) => links.length > 0,
+        predicate: (links) => links.length > 0,
         reason: 'Suspicious .ru.com Domain'
     },
     {
-        regex: /(?:http[s]?:\/\/.)?(?:www\.)?[-a-zA-Z0-9@%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/ig,
+        regex: /nsfwcord/ig, // new recent scam
         whitelist: [],
-        mute: true,
+        predicate: (links) => links.length > 0,
+        reason: 'Sex bot scam'
+    },
+    {
+        regex: /(?:http[s]?:\/\/.)?(?:www\.)?[-a-zA-Z0-9@%._+~#=]{2,256}\.[a-z]{2,6}\b[-a-zA-Z0-9@:%_+.~#?&\/=]*/ig,
+        whitelist: [],
         predicate: (links, self) => links.length == self.maxCount, // this should probably be more than 4 later on.
         reason: 'Potential Scam Message',
         maxCount: 4
@@ -97,16 +99,20 @@ export default {
 
         let reasons: string[] = [];
 
-        for (var pattern of phishingPatterns) {
+        for (const pattern of phishingPatterns) {
             const links = Array.from(message.content.matchAll(pattern.regex))
-            const shouldReason = pattern.predicate(links, pattern)
+            const shouldReason = pattern.predicate(links)
             if (shouldReason) {
                 reasons.push(pattern.reason)
             }
         }
 
-        if (reasons.length > 0) {
+        if (reasons.length === 0) return;
+
+        try {
             await message.delete();
+        } catch (e) {
+            console.error("Could not delete message. Likely deleted or no permissions.", e);
         }
 
 
@@ -118,8 +124,7 @@ export default {
                 try {
                     await member.roles.add(muteRoleId);
                     didMute = true;
-                }
-                catch {
+                } catch {
                     // TODO: logging?
                     console.error("Could not add mute role. Likely permissions.");
                 }
@@ -131,21 +136,21 @@ export default {
         if (!modlogId || !modlogChannel || !modlogChannel.isTextBased()) return; // Can't log
 
         const dEmbed = new EmbedBuilder().setColor(Colors.Info)
-            .setAuthor({ name: message.author.username, iconURL: message.author.displayAvatarURL() })
+            .setAuthor({name: message.author.username, iconURL: message.author.displayAvatarURL()})
             .setDescription(`Message sent by ${message.author.username} in ${message.channel.name}\n\n` + message.content)
-            .addFields({ name: "Reason(s)", value: reasons.join(', ') })
-            .setFooter({ text: `ID: ${message.author.id}` }).setTimestamp(message.createdTimestamp);
-        await modlogChannel.send({ embeds: [dEmbed] });
+            .addFields({name: "Reason(s)", value: reasons.join(', ')})
+            .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
+        await modlogChannel.send({embeds: [dEmbed]});
 
 
         if (didMute) {
             const mEmbed = new EmbedBuilder().setColor(Colors.Info)
-                .setAuthor({ name: "Member Muted", iconURL: message.author.displayAvatarURL() })
+                .setAuthor({name: "Member Muted", iconURL: message.author.displayAvatarURL()})
                 .setDescription(`${message.author.displayName} ${message.author.tag}`)
-                .addFields({ name: "Reason(s)", value: reasons.join(', ') })
-                .setFooter({ text: `ID: ${message.author.id}` }).setTimestamp(message.createdTimestamp);
+                .addFields({name: "Reason(s)", value: reasons.join(', ')})
+                .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
 
-            await modlogChannel.send({ embeds: [mEmbed] });
+            await modlogChannel.send({embeds: [mEmbed]});
         }
     },
 };
