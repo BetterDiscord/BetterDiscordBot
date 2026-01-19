@@ -101,7 +101,7 @@ export default {
 
         for (const pattern of phishingPatterns) {
             const links = Array.from(message.content.matchAll(pattern.regex))
-            const shouldReason = pattern.predicate(links)
+            const shouldReason = pattern.predicate(links, pattern)
             if (shouldReason) {
                 reasons.push(pattern.reason)
             }
