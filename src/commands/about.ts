@@ -23,7 +23,7 @@ export default {
 
         aboutEmbed.setColor("Blue");
         aboutEmbed.setAuthor({name: interaction.client.user.username, iconURL: interaction.client.user.displayAvatarURL()});
-        aboutEmbed.setDescription("**🆕 Now user-installable!** Add to your account for DM access and cross-server profiles.");
+        //aboutEmbed.setDescription("**🆕 Now user-installable!** Add to your account for DM access and cross-server profiles.");
 
         const owner = await interaction.client.users.fetch(process.env.BOT_OWNER_ID!);
         if (owner) aboutEmbed.setFooter({text: `Created by @${owner.username}`, iconURL: owner.displayAvatarURL()});
@@ -109,12 +109,12 @@ export default {
         addField(`Uptime`, humanReadableUptime(now - interaction.client.readyAt.valueOf()), true);
         await interaction.editReply({
             embeds: [aboutEmbed],
-            components: [
+            /*components: [
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder().setLabel(`Invite ${interaction.client.user.username}`).setStyle(ButtonStyle.Link).setURL(inviteLink).setEmoji("🔗"),
                     new ButtonBuilder().setLabel("Add to Account").setStyle(ButtonStyle.Link).setURL(userInviteLink).setEmoji("📱")
                 )
-            ]
+            ]*/
         });
     },
 };
