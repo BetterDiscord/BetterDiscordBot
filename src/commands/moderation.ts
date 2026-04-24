@@ -35,6 +35,13 @@ export default {
                     opt.setName("channel").setDescription("Where to log join/leave messages?").setRequired(false)
                         .addChannelTypes(ChannelType.GuildText)
                 )
+        )
+        .addSubcommand(
+            c => c.setName("actionlog").setDescription("Sets a channel to log server action events.")
+                .addChannelOption(opt =>
+                    opt.setName("channel").setDescription("Where to log server action events?").setRequired(false)
+                        .addChannelTypes(ChannelType.GuildText)
+                )
         ),
 
     async execute(interaction: ChatInputCommandInteraction<"cached">) {
@@ -43,6 +50,7 @@ export default {
         if (command === "detectspam") return await this.detectspam(interaction);
         if (command === "modlog") return await this.modlog(interaction);
         if (command === "joinleave") return await this.joinleave(interaction);
+        if (command === "actionlog") return await this.actionlog(interaction);
     },
 
 
@@ -104,5 +112,20 @@ export default {
             await guildDB.set(interaction.guild.id, current);
         }
         await interaction.reply(Messages.success(targetChannel ? `Join/leave set to <#${targetChannel.id}>!` : "Join/leave has been unset!", {ephemeral: true}));
+    },
+
+
+    async actionlog(interaction: ChatInputCommandInteraction<"cached">) {
+        const targetChannel = interaction.options.getChannel("channel");
+        const current = await guildDB.get(interaction.guild.id) ?? {};
+        if (targetChannel) {
+            current.actionlog = targetChannel.id;
+            await guildDB.set(interaction.guild.id, current);
+        }
+        else {
+            delete current.actionlog;
+            await guildDB.set(interaction.guild.id, current);
+        }
+        await interaction.reply(Messages.success(targetChannel ? `Action log set to <#${targetChannel.id}>!` : "Action log has been unset!", {ephemeral: true}));
     },
 };

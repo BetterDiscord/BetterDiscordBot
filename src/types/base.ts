@@ -42,6 +42,27 @@ export interface GuildSettings {
     detectspam?: boolean;
     modlog?: string;
     joinleave?: string;
+    actionlog?: string;
+    autoresponder?: boolean;
+}
+
+export interface ReactionRole {
+    messageId: string;
+    channelId: string;
+    emoji: string;
+    roleId: string;
+}
+
+export interface AutoResponderEntry {
+    trigger: string;
+    response: string;
+    matchType: "exact" | "contains" | "startsWith";
+}
+
+export interface Warning {
+    reason: string;
+    moderatorId: string;
+    timestamp: number;
 }
 
 export interface UserInstallNotice {

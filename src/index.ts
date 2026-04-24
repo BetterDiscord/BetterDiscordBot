@@ -13,10 +13,14 @@ const client = new Client({
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildModeration,
         GatewayIntentBits.DirectMessages
     ],
     partials: [
-        Partials.Channel
+        Partials.Channel,
+        Partials.Message,
+        Partials.Reaction,
     ],
     presence: {activities: [{name: "Watching for spam", type: ActivityType.Custom}]}
 });
@@ -43,14 +47,18 @@ const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".ts"
 
 for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
-    const event = await import(pathToFileURL(filePath).href) as {default: EventModule;};
+    const event = await import(pathToFileURL(filePath).href) as {default: EventModule | EventModule[];};
     // Handle both default and named exports
     const eventData = event.default || event;
-    if (eventData.once) {
-        client.once(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
-    }
-    else {
-        client.on(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
+    // Handle both single event modules and arrays of event modules
+    const eventList = Array.isArray(eventData) ? eventData : [eventData];
+    for (const e of eventList) {
+        if (e.once) {
+            client.once(e.name, (...args: Parameters<typeof e.execute>) => e.execute(...args));
+        }
+        else {
+            client.on(e.name, (...args: Parameters<typeof e.execute>) => e.execute(...args));
+        }
     }
 }
 
