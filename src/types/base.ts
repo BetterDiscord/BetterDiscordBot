@@ -43,8 +43,11 @@ export interface GuildSettings {
     modlog?: string;
     joinleave?: string;
     actionlog?: string;
+    actionlogEvents?: Partial<Record<ActionLogEvent, boolean>>;
     autoresponder?: boolean;
 }
+
+export type ActionLogEvent = "message_delete" | "message_edit" | "member_ban" | "member_unban" | "nickname_change" | "role_change";
 
 export interface ReactionRole {
     messageId: string;
