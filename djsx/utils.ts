@@ -36,3 +36,7 @@ export function singleChild<T>(name: string, children: T | T[]): T {
 
     return children[0];
 }
+
+export function hexToDecimal(hex: string): number {
+    return parseInt(hex.replace(/^#/, ""), 16);
+}

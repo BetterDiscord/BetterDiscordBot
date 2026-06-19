@@ -7,9 +7,9 @@
 
 export const Fragment = Symbol("ComponentsJsx.Fragment");
 
-type FunctionComponent<P, K> = (props: P) => K;
+type FunctionComponent<P, R> = (props: P) => R;
 
-export function createElement<P extends {children?: unknown;}, K>(type: "br" | typeof Fragment | FunctionComponent<P, K>, props: P, ...children: Array<P["children"]>): K {
+export function createElement<P extends {children?: unknown;}, R>(type: "br" | typeof Fragment | FunctionComponent<P, R>, props: P, ...children: Array<P["children"]>): R {
 
     // Normalize props and children
     props ??= {} as P;
@@ -17,13 +17,17 @@ export function createElement<P extends {children?: unknown;}, K>(type: "br" | t
 
     switch (type) {
         case "br":
-            return "\n" as K;
+            return "\n" as R;
         case Fragment:
-            return props.children as K;
+            return props.children as R;
     }
 
     return type(props);
 }
+
+export const jsx = createElement;
+export const jsxs = createElement;
+export const jsxDEV = createElement;
 
 // function logAndReturn(name: string) {
 //     return (type, props, ...children) => {
@@ -36,7 +40,3 @@ export function createElement<P extends {children?: unknown;}, K>(type: "br" | t
 // export const jsx = logAndReturn("jsx");
 // export const jsxs = logAndReturn("jsxs");
 // export const jsxDEV = logAndReturn("jsxDEV");
-
-export const jsx = createElement;
-export const jsxs = createElement;
-export const jsxDEV = createElement;
