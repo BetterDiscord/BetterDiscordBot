@@ -4,6 +4,7 @@ import Colors from "../util/colors";
 
 
 const TIMEOUT_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+const TARGET_GUILD_ID = "86004744966914048";
 const ACCOUNT_ISSUES_CHANNEL_ID = "1465301762821853204";
 const sketchyImageRegex = /https:\/\/(?:cdn|media)\.(?:discord|discordapp)\.(?:com|net)\/attachments\/\d+\/\d+\/(?:[1234]|image)\.(?:jpg|png|webp)(?:\?.*?)?(?:\s+|$)/;
 
@@ -15,6 +16,7 @@ export default {
         // Ignore DM messages and owner messages and people with manage messages perms
         if (!message.inGuild() || message.author.id === process.env.BOT_OWNER_ID) return;
         if (message.author.id === message.client.user.id) return;
+        if (message.guild.id !== TARGET_GUILD_ID) return;
         if (message.channel.permissionsFor(message.author)?.has(PermissionFlagsBits.ManageMessages)) return;
 
         // Obviously if this is disabled we don't need to do this stuff either
