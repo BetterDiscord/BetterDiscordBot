@@ -1,8 +1,9 @@
 import {node} from "@zerebos/eslint-config";
 import ts from "@zerebos/eslint-config-typescript";
+import {defineConfig} from "eslint/config";
 
 /** @type {import("@zerebos/eslint-config-typescript").ConfigArray} */
-export default [
+export default defineConfig(
     ...node,
     ...ts.configs.recommendedWithTypes,
     {
@@ -13,5 +14,12 @@ export default [
     },
     {
         ignores: ["**/debug/**", "**/node_modules/**"]
+    },
+    {
+        files: ["**/*.tsx"],
+        rules: {
+            "@typescript-eslint/no-unsafe-assignment": "off",
+            "@typescript-eslint/no-unsafe-argument": "off"
+        }
     }
-];
+);

@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {Container, TextDisplay, Section, Thumbnail, Modal, ModalLabel, TextInput, TextInputStyle} from "@djsx";
 import {type ContainerComponentData, type ModalComponentData} from "discord.js";
 import type {AtLeast, Tag} from "../types";
+
 
 export function Tag(tag: Tag) {
     const text = <>

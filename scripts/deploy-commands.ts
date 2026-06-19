@@ -63,7 +63,7 @@ if (!shouldClear) {
             continue;
         }
 
-        const commandData = command.data.toJSON();
+        const commandData = "toJSON" in command.data ? command.data.toJSON() : command.data;
 
         // Separate owner commands to "privileged" guild
         if (command.owner) {

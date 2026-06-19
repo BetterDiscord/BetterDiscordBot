@@ -5,7 +5,9 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
-    "jsx": "preserve",
+    // "jsx": "preserve",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@djsx",
     "allowJs": false,
 
     // Bundler mode
@@ -31,6 +33,8 @@
 
     // Import aliases
     "paths": {
+        "@": ["./src/index.ts"],
+        "@/*": ["./src/*"],
         "@djsx": ["./djsx/index.ts"],
         "@djsx/*": ["./djsx/*"],
     }
@@ -39,6 +43,9 @@
     "src/**/*",
     "scripts/*",
     "tests/**/*",
-    "djsx/**/*"
+    "djsx/**/*",
+    "djsx/*",
+    "debug/test.tsx",
+    "debug/test2.tsx"
   ],
 }

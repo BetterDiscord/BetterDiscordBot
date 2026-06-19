@@ -13,7 +13,7 @@ declare module "discord.js" {
 export type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>;
 
 export type CommandModule = {
-    data: SlashCommandBuilder;
+    data: SlashCommandBuilder | ReturnType<SlashCommandBuilder["toJSON"]>;
     owner?: boolean;
     execute: <T extends BaseInteraction = ChatInputCommandInteraction>(interaction: T) => Promise<void>;
     autocomplete: <T extends BaseInteraction = AutocompleteInteraction>(i: T) => unknown;
