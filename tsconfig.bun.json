@@ -1,0 +1,8 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        // Override the jsx setting for Bun, which doesn't support the "react-jsx" setting
+        // But when doing this in bunfig.toml, it doesn't seem to work, so we have to do it here instead
+        "jsx": "preserve"
+    }
+}

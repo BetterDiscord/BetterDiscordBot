@@ -6,10 +6,10 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "bun run --bun src/index.ts",
-    "deploy": "bun run --bun scripts/deploy-commands.ts",
-    "clear": "bun run --bun scripts/deploy-commands.ts --clear",
-    "validate": "bun run --bun scripts/validate-env.ts"
+    "start": "bun run --tsconfig-override tsconfig.bun.json --bun src/index.ts",
+    "deploy": "bun run --tsconfig-override tsconfig.bun.json --bun scripts/deploy-commands.ts",
+    "clear": "bun run --tsconfig-override tsconfig.bun.json --bun scripts/deploy-commands.ts --clear",
+    "validate": "bun run --tsconfig-override tsconfig.bun.json --bun scripts/validate-env.ts"
   },
   "author": "Zerebos",
   "license": "MIT",

@@ -45,7 +45,7 @@
     "tests/**/*",
     "djsx/**/*",
     "djsx/*",
-    "debug/test.tsx",
-    "debug/test2.tsx"
+    // "debug/test.tsx",
+    // "debug/test2.tsx"
   ],
 }
