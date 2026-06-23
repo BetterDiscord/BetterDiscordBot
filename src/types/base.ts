@@ -42,6 +42,30 @@ export interface GuildSettings {
     detectspam?: boolean;
     modlog?: string;
     joinleave?: string;
+    actionlog?: string;
+    actionlogEvents?: Partial<Record<ActionLogEvent, boolean>>;
+    autoresponder?: boolean;
+}
+
+export type ActionLogEvent = "message_delete" | "message_edit" | "member_ban" | "member_unban" | "nickname_change" | "role_change";
+
+export interface ReactionRole {
+    messageId: string;
+    channelId: string;
+    emoji: string;
+    roleId: string;
+}
+
+export interface AutoResponderEntry {
+    trigger: string;
+    response: string;
+    matchType: "exact" | "contains" | "startsWith";
+}
+
+export interface Warning {
+    reason: string;
+    moderatorId: string;
+    timestamp: number;
 }
 
 export interface UserInstallNotice {

@@ -1,6 +1,17 @@
 import {ChannelType, ChatInputCommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
 import {guildDB} from "../db";
 import Messages from "../util/messages";
+import type {ActionLogEvent} from "../types";
+
+
+const ACTION_LOG_EVENT_CHOICES: {name: string; value: ActionLogEvent;}[] = [
+    {name: "Message Deleted", value: "message_delete"},
+    {name: "Message Edited", value: "message_edit"},
+    {name: "Member Banned", value: "member_ban"},
+    {name: "Member Unbanned", value: "member_unban"},
+    {name: "Nickname Changed", value: "nickname_change"},
+    {name: "Role Changes", value: "role_change"},
+];
 
 
 
@@ -35,6 +46,23 @@ export default {
                     opt.setName("channel").setDescription("Where to log join/leave messages?").setRequired(false)
                         .addChannelTypes(ChannelType.GuildText)
                 )
+        )
+        .addSubcommand(
+            c => c.setName("actionlog").setDescription("Sets a channel to log server action events.")
+                .addChannelOption(opt =>
+                    opt.setName("channel").setDescription("Where to log server action events?").setRequired(false)
+                        .addChannelTypes(ChannelType.GuildText)
+                )
+        )
+        .addSubcommand(
+            c => c.setName("actionlogevents").setDescription("Enable or disable individual action log event types.")
+                .addStringOption(opt =>
+                    opt.setName("event").setDescription("The event type to configure.").setRequired(true)
+                        .addChoices(...ACTION_LOG_EVENT_CHOICES)
+                )
+                .addBooleanOption(opt =>
+                    opt.setName("enable").setDescription("Enable or disable this event type.").setRequired(false)
+                )
         ),
 
     async execute(interaction: ChatInputCommandInteraction<"cached">) {
@@ -43,6 +71,8 @@ export default {
         if (command === "detectspam") return await this.detectspam(interaction);
         if (command === "modlog") return await this.modlog(interaction);
         if (command === "joinleave") return await this.joinleave(interaction);
+        if (command === "actionlog") return await this.actionlog(interaction);
+        if (command === "actionlogevents") return await this.actionlogevents(interaction);
     },
 
 
@@ -104,5 +134,41 @@ export default {
             await guildDB.set(interaction.guild.id, current);
         }
         await interaction.reply(Messages.success(targetChannel ? `Join/leave set to <#${targetChannel.id}>!` : "Join/leave has been unset!", {ephemeral: true}));
+    },
+
+
+    async actionlog(interaction: ChatInputCommandInteraction<"cached">) {
+        const targetChannel = interaction.options.getChannel("channel");
+        const current = await guildDB.get(interaction.guild.id) ?? {};
+        if (targetChannel) {
+            current.actionlog = targetChannel.id;
+            await guildDB.set(interaction.guild.id, current);
+        }
+        else {
+            delete current.actionlog;
+            await guildDB.set(interaction.guild.id, current);
+        }
+        await interaction.reply(Messages.success(targetChannel ? `Action log set to <#${targetChannel.id}>!` : "Action log has been unset!", {ephemeral: true}));
+    },
+
+
+    async actionlogevents(interaction: ChatInputCommandInteraction<"cached">) {
+        const event = interaction.options.getString("event", true) as ActionLogEvent;
+        const toEnable = interaction.options.getBoolean("enable");
+        const current = await guildDB.get(interaction.guild.id) ?? {};
+
+        // No value supplied → report current state
+        if (toEnable === null) {
+            const isEnabled = current.actionlogEvents?.[event] !== false;
+            const label = ACTION_LOG_EVENT_CHOICES.find(c => c.value === event)?.name ?? event;
+            return await interaction.reply(Messages.info(`**${label}** is currently ${isEnabled ? "enabled" : "disabled"}.`, {ephemeral: true}));
+        }
+
+        current.actionlogEvents ??= {};
+        current.actionlogEvents[event] = toEnable;
+        await guildDB.set(interaction.guild.id, current);
+
+        const label = ACTION_LOG_EVENT_CHOICES.find(c => c.value === event)?.name ?? event;
+        await interaction.reply(Messages.success(`**${label}** has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
     },
 };
