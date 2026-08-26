@@ -1,6 +1,6 @@
 import {ChatInputCommandInteraction, InteractionContextType, SlashCommandBuilder, type GuildTextBasedChannel} from "discord.js";
 import {guildDB} from "../db";
-import Messages from "../util/messages";
+import * as notices from "../util/notices";
 
 
 
@@ -49,7 +49,7 @@ export default {
 
 
     async channel(interaction: ChatInputCommandInteraction<"cached">) {
-        if (!interaction.member.permissions.has("Administrator")) return await interaction.reply(Messages.error("You need to be an administrator to use this command!", {ephemeral: true}));
+        if (!interaction.member.permissions.has("Administrator")) return await interaction.reply(notices.error("You need to be an administrator to use this command!", {ephemeral: true}));
         const targetChannelId = interaction.options.getString("channel");
 
         // const targetGuild = await interaction.client.guilds.fetch(targetGuildId);
@@ -64,12 +64,12 @@ export default {
             delete current.inviteChannel;
             await guildDB.set(interaction.guild.id, current);
         }
-        await interaction.reply(Messages.success(targetChannel ? `Invite message channel set to <#${targetChannel.id}>!` : "Invite message channel has been unset!", {ephemeral: true}));
+        await interaction.reply(notices.success(targetChannel ? `Invite message channel set to <#${targetChannel.id}>!` : "Invite message channel has been unset!", {ephemeral: true}));
     },
 
 
     async add(interaction: ChatInputCommandInteraction<"cached">) {
-        if (!interaction.member.permissions.has("ManageRoles")) return await interaction.reply(Messages.error("You need the `Manage Roles` permission to use this command!", {ephemeral: true}));
+        if (!interaction.member.permissions.has("ManageRoles")) return await interaction.reply(notices.error("You need the `Manage Roles` permission to use this command!", {ephemeral: true}));
         await interaction.deferReply({ephemeral: true});
         const targetUser = interaction.options.getUser("user", true);
         const roleName = interaction.options.getString("role", true);
@@ -82,11 +82,11 @@ export default {
                 await member.roles.add(bdRoleId, "Developer verified");
             }
             catch {
-                await interaction.editReply(Messages.error("Could not add roles in main server!", {ephemeral: true}));
+                await interaction.editReply(notices.error("Could not add roles in main server!", {ephemeral: true}));
             }
         }
         catch {
-            await interaction.editReply(Messages.error("User is not in BetterDiscord server!", {ephemeral: true}));
+            await interaction.editReply(notices.error("User is not in BetterDiscord server!", {ephemeral: true}));
         }
 
         let messageToSend = message.replace("{{user}}", `<@!${targetUser.id}>`).replace("{{role}}", roleName);
@@ -103,7 +103,7 @@ export default {
             await targetUser.send(messageToSend);
         }
         catch {
-            await interaction.editReply(Messages.error("Could not DM user!", {ephemeral: true}));
+            await interaction.editReply(notices.error("Could not DM user!", {ephemeral: true}));
 
             const guildSettings = await guildDB.get(interaction.guild.id) ?? {};
             if (guildSettings.inviteChannel) {
@@ -114,15 +114,15 @@ export default {
                     await inviteChannel?.send(messageToSend);
                 }
                 catch {
-                    await interaction.editReply(Messages.error("Could not send a message in the invite channel!", {ephemeral: true}));
+                    await interaction.editReply(notices.error("Could not send a message in the invite channel!", {ephemeral: true}));
                 }
             }
             else {
-                await interaction.editReply(Messages.error("Could not DM user and no fallback channel exists!", {ephemeral: true}));
+                await interaction.editReply(notices.error("Could not DM user and no fallback channel exists!", {ephemeral: true}));
             }
         }
 
-        await interaction.editReply(Messages.success("Role has been added successfully!", {ephemeral: true}));
+        await interaction.editReply(notices.success("Role has been added successfully!", {ephemeral: true}));
     },
 
 
@@ -130,7 +130,7 @@ export default {
         const targetUser = interaction.options.getUser("user", true);
         const bdGuild = await interaction.client.guilds.fetch("86004744966914048");
         const bdMember = await bdGuild.members.fetch(targetUser);
-        if (!bdMember) return await interaction.reply(Messages.error("User is not in BetterDiscord server!", {ephemeral: true}));
+        if (!bdMember) return await interaction.reply(notices.error("User is not in BetterDiscord server!", {ephemeral: true}));
         const isPluginDev = bdMember.roles.cache.has("125166040689803264");
         const isThemeDev = bdMember.roles.cache.has("165005972970930176");
         const rolesToAdd = [isPluginDev ? "948627723830591568" : "", isThemeDev ? "948627648706392104" : ""].filter(r => r);
@@ -141,10 +141,10 @@ export default {
             await communityMember.roles.add(rolesToAdd, "Syncing roles from main server");
         }
         catch {
-            return await interaction.reply(Messages.error("Could not assign roles in this server!", {ephemeral: true}));
+            return await interaction.reply(notices.error("Could not assign roles in this server!", {ephemeral: true}));
         }
 
-        await interaction.reply(Messages.success("Roles have been synced!", {ephemeral: true}));
+        await interaction.reply(notices.success("Roles have been synced!", {ephemeral: true}));
     },
 
 };

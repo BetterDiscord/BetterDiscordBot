@@ -9,7 +9,11 @@
  * commands still use. Collapsing them onto this one is the next pass.
  */
 
-import {MessageFlags, type ContainerComponentData} from "discord.js";
+import {
+    MessageFlags,
+    type ActionRowData, type ComponentInContainerData, type ContainerComponentData,
+    type MessageActionRowComponentData
+} from "discord.js";
 import {container, text} from "../framework/ui";
 import Colors from "./colors";
 
@@ -20,6 +24,8 @@ export interface NoticeOptions {
     ephemeral?: boolean;
     /** Extra message flags to merge in. */
     flags?: number;
+    /** Action rows rendered inside the container, below the text. */
+    components?: Array<ActionRowData<MessageActionRowComponentData>>;
 }
 
 /** Discord wants an integer for a container accent; Colors are authored as hex. */
@@ -48,9 +54,12 @@ export interface Notice {
 }
 
 export function notice(kind: NoticeKind, content: string, options: NoticeOptions = {}): Notice {
+    const body: ComponentInContainerData[] = [text(`${ICONS[kind]}   ${content}`)];
+    if (options.components?.length) body.push(...options.components);
+
     return {
         flags: MessageFlags.IsComponentsV2 | (options.ephemeral ? MessageFlags.Ephemeral : 0) | (options.flags ?? 0),
-        components: [container([text(`${ICONS[kind]}   ${content}`)], {accentColor: ACCENTS[kind]})]
+        components: [container(body, {accentColor: ACCENTS[kind]})]
     };
 }
 

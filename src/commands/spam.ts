@@ -1,5 +1,5 @@
 import {ChatInputCommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
-import Messages from "../util/messages";
+import * as notices from "../util/notices";
 
 
 // TODO: move detectspam from moderation to here
@@ -24,12 +24,12 @@ export default {
 
     async link(interaction: ChatInputCommandInteraction<"cached">) {
         const rule = await interaction.guild.autoModerationRules.fetch("1256935881168781332");
-        if (!rule) return await interaction.reply(Messages.error("Spam link filter rule not found! Report this to Zerebos!", {ephemeral: true}));
+        if (!rule) return await interaction.reply(notices.error("Spam link filter rule not found! Report this to Zerebos!", {ephemeral: true}));
 
         const existing = rule.triggerMetadata?.keywordFilter ?? [];
         const link = interaction.options.getString("link", true);
 
-        if (existing.includes(link)) return await interaction.reply(Messages.info("This link is already in the spam filter!", {ephemeral: true}));
+        if (existing.includes(link)) return await interaction.reply(notices.info("This link is already in the spam filter!", {ephemeral: true}));
 
         await rule.edit({
             triggerMetadata: {
@@ -38,6 +38,6 @@ export default {
         });
 
         // Don't make this ephemeral since it's useful to see who added what link
-        await interaction.reply(Messages.success("Link added to spam filter!"));
+        await interaction.reply(notices.success("Link added to spam filter!"));
     },
 };

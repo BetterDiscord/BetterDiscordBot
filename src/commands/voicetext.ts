@@ -1,6 +1,6 @@
 import {ChannelType, ChatInputCommandInteraction, GuildChannel, OverwriteType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
 import {voicetextDB} from "../db";
-import Messages from "../util/messages";
+import * as notices from "../util/notices";
 
 
 export default {
@@ -50,11 +50,11 @@ export default {
     async bind(interaction: ChatInputCommandInteraction<"cached">) {
         const voice = interaction.options.getChannel("voice", true);
         const text = interaction.options.getChannel<ChannelType.GuildText>("text", true);
-        if (voice.type !== ChannelType.GuildVoice) return await interaction.reply(Messages.error("The voice channel must be a voice channel.", {ephemeral: true}));
-        if (text.type !== ChannelType.GuildText) return await interaction.reply(Messages.error("The text channel must be a text channel.", {ephemeral: true}));
+        if (voice.type !== ChannelType.GuildVoice) return await interaction.reply(notices.error("The voice channel must be a voice channel.", {ephemeral: true}));
+        if (text.type !== ChannelType.GuildText) return await interaction.reply(notices.error("The text channel must be a text channel.", {ephemeral: true}));
 
         const partner = await voicetextDB.get(voice.id) ?? "";
-        if (partner) return await interaction.reply(Messages.error(`<#${voice.id}> is already bound to <#${partner}>. Please unbind before continuing.`, {ephemeral: true}));
+        if (partner) return await interaction.reply(notices.error(`<#${voice.id}> is already bound to <#${partner}>. Please unbind before continuing.`, {ephemeral: true}));
 
 
         try {
@@ -62,40 +62,40 @@ export default {
         }
         catch (err) {
             console.error(err);
-            return await interaction.reply(Messages.error(`Unable to adjust permissions for <#${text.id}>. Make sure the bot has permission.`));
+            return await interaction.reply(notices.error(`Unable to adjust permissions for <#${text.id}>. Make sure the bot has permission.`));
         }
 
         await voicetextDB.set(voice.id, text.id);
-        await interaction.reply(Messages.success(`<#${voice.id}> is now bound to <#${text.id}>!`, {ephemeral: true}));
+        await interaction.reply(notices.success(`<#${voice.id}> is now bound to <#${text.id}>!`, {ephemeral: true}));
     },
 
 
     async unbind(interaction: ChatInputCommandInteraction<"cached">) {
         const targetChannel = interaction.options.getChannel("channel", true);
         const partner = await voicetextDB.get(targetChannel.id) ?? "";
-        if (!partner) return await interaction.reply(Messages.error(`<#${targetChannel.id}> is not bound.`, {ephemeral: true}));
+        if (!partner) return await interaction.reply(notices.error(`<#${targetChannel.id}> is not bound.`, {ephemeral: true}));
 
         /**
          * @type {import("discord.js").GuildChannel}
          */
         const text = interaction.guild.channels.cache.get(partner) as GuildChannel;
-        if (text.type !== ChannelType.GuildText) return await interaction.reply(Messages.error("The text channel must be a text channel.", {ephemeral: true}));
+        if (text.type !== ChannelType.GuildText) return await interaction.reply(notices.error("The text channel must be a text channel.", {ephemeral: true}));
         try {
             await text.permissionOverwrites.edit(interaction.guild.id, {SendMessages: null}, {reason: "Unbind text and voice channel", type: OverwriteType.Role});
         }
         catch (err) {
             console.error(err);
-            return await interaction.reply(Messages.error(`Unable to adjust permissions for <#${text.id}>. Make sure the bot has permission.`));
+            return await interaction.reply(notices.error(`Unable to adjust permissions for <#${text.id}>. Make sure the bot has permission.`));
         }
 
         await voicetextDB.delete(targetChannel.id);
-        await interaction.reply(Messages.success(`<#${targetChannel.id}> is now unbound!`, {ephemeral: true}));
+        await interaction.reply(notices.success(`<#${targetChannel.id}> is now unbound!`, {ephemeral: true}));
     },
 
 
     async status(interaction: ChatInputCommandInteraction) {
         const targetChannel = interaction.options.getChannel("channel", true);
         const partner = await voicetextDB.get(targetChannel.id) ?? "";
-        await interaction.reply(Messages.info(partner ? `<#${targetChannel.id}> is bound to <#${partner}>` : `This channel <#${targetChannel.id}> is not bound.`, {ephemeral: true}));
+        await interaction.reply(notices.info(partner ? `<#${targetChannel.id}> is bound to <#${partner}>` : `This channel <#${targetChannel.id}> is not bound.`, {ephemeral: true}));
     },
 };

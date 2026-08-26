@@ -1,6 +1,6 @@
 import {ChannelType, ChatInputCommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
 import {guildDB} from "../db";
-import Messages from "../util/messages";
+import * as notices from "../util/notices";
 
 
 
@@ -52,12 +52,12 @@ export default {
     async invitefilter(interaction: ChatInputCommandInteraction<"cached">) {
         const toEnable = interaction.options.getBoolean("enable");
         const current = await guildDB.get(interaction.guild.id) ?? {};
-        if (toEnable === null) return await interaction.reply(Messages.info(`This module is currently ${current.invitefilter ? "enabled" : "disabled"}.`, {ephemeral: true}));
+        if (toEnable === null) return await interaction.reply(notices.info(`This module is currently ${current.invitefilter ? "enabled" : "disabled"}.`, {ephemeral: true}));
 
         current.invitefilter = toEnable;
         await guildDB.set(interaction.guild.id, current);
 
-        await interaction.reply(Messages.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
+        await interaction.reply(notices.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
     },
 
 
@@ -65,12 +65,12 @@ export default {
     async detectspam(interaction: ChatInputCommandInteraction<"cached">) {
         const toEnable = interaction.options.getBoolean("enable");
         const current = await guildDB.get(interaction.guild.id) ?? {};
-        if (toEnable === null) return await interaction.reply(Messages.info(`This module is currently ${current.detectspam ? "enabled" : "disabled"}.`, {ephemeral: true}));
+        if (toEnable === null) return await interaction.reply(notices.info(`This module is currently ${current.detectspam ? "enabled" : "disabled"}.`, {ephemeral: true}));
 
         current.detectspam = toEnable;
         await guildDB.set(interaction.guild.id, current);
 
-        await interaction.reply(Messages.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
+        await interaction.reply(notices.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
     },
 
 
@@ -88,7 +88,7 @@ export default {
             delete current.modlog;
             await guildDB.set(interaction.guild.id, current);
         }
-        await interaction.reply(Messages.success(targetChannel ? `Modlog set to <#${targetChannel.id}>!` : "Modlog has been unset!", {ephemeral: true}));
+        await interaction.reply(notices.success(targetChannel ? `Modlog set to <#${targetChannel.id}>!` : "Modlog has been unset!", {ephemeral: true}));
     },
 
 
@@ -103,6 +103,6 @@ export default {
             delete current.joinleave;
             await guildDB.set(interaction.guild.id, current);
         }
-        await interaction.reply(Messages.success(targetChannel ? `Join/leave set to <#${targetChannel.id}>!` : "Join/leave has been unset!", {ephemeral: true}));
+        await interaction.reply(notices.success(targetChannel ? `Join/leave set to <#${targetChannel.id}>!` : "Join/leave has been unset!", {ephemeral: true}));
     },
 };

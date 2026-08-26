@@ -1,5 +1,5 @@
 import {ActionRowBuilder, ChannelType, ChatInputCommandInteraction, ModalBuilder, SlashCommandBuilder, TextChannel, TextInputBuilder, TextInputStyle, type PartialTextBasedChannelFields} from "discord.js";
-import Messages from "../util/messages";
+import * as notices from "../util/notices";
 import {globalDB} from "../db";
 
 
@@ -35,7 +35,7 @@ export default {
 
 
     async execute(interaction: ChatInputCommandInteraction) {
-        if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(Messages.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
+        if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(notices.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
 
         const group = interaction.options.getSubcommandGroup();
         const command = interaction.options.getSubcommand();
@@ -78,14 +78,14 @@ export default {
             const message = modalInteraction.fields.getTextInputValue("message");
             try {
                 await target.send(message);
-                await modalInteraction.reply(Messages.success("Message sent successfully!", {ephemeral: true}));
+                await modalInteraction.reply(notices.success("Message sent successfully!", {ephemeral: true}));
             }
             catch {
-                await modalInteraction.reply(Messages.error("Could not send message!", {ephemeral: true}));
+                await modalInteraction.reply(notices.error("Could not send message!", {ephemeral: true}));
             }
         }
         catch {
-            await interaction.followUp(Messages.error("Modal submission timed out!", {ephemeral: true}));
+            await interaction.followUp(notices.error("Modal submission timed out!", {ephemeral: true}));
         }
     },
 
@@ -99,12 +99,12 @@ export default {
         const targetUser = interaction.options.getUser("user");
         if (targetUser) await globalDB.set("forwarding", targetUser.id);
         else await globalDB.delete("forwarding");
-        await interaction.reply(Messages.success(targetUser ? `Now forwarding DMs to <@${targetUser.id}>!` : "No longer forwarding DMs!", {ephemeral: true}));
+        await interaction.reply(notices.success(targetUser ? `Now forwarding DMs to <@${targetUser.id}>!` : "No longer forwarding DMs!", {ephemeral: true}));
     },
 
 
     async quit(interaction: ChatInputCommandInteraction) {
-        await interaction.reply(Messages.info("Bot shutting down...", {ephemeral: true}));
+        await interaction.reply(notices.info("Bot shutting down...", {ephemeral: true}));
         await interaction.client.destroy();
         process.exit(0);
     },

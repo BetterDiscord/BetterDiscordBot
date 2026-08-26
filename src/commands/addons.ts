@@ -1,5 +1,5 @@
 import {ApplicationIntegrationType, AutocompleteInteraction, ChatInputCommandInteraction, InteractionContextType, MessageFlags, SlashCommandBuilder, type AutocompleteFocusedOption} from "discord.js";
-import Messages from "../util/messages";
+import * as notices from "../util/notices";
 import type {BdWebAddon, BdWebTag} from "../types";
 import Similarity from "string-similarity";
 import Web from "../util/web";
@@ -62,7 +62,7 @@ export default {
         if (command === "random") return await this.random(interaction);
         if (command === "info") return await this.info(interaction);
 
-        return await interaction.editReply(Messages.error("This command is not yet implemented."));
+        return await interaction.editReply(notices.error("This command is not yet implemented."));
     },
 
     /**
@@ -81,7 +81,7 @@ export default {
         });
 
         // No need to continue if there are no results
-        if (filteredAddons.length === 0) return await interaction.editReply(Messages.error("No addons found with the specified criteria."));
+        if (filteredAddons.length === 0) return await interaction.editReply(notices.error("No addons found with the specified criteria."));
 
         sortAddons(filteredAddons, sort as "likes" | "downloads" | "initial_release_date" | "latest_release_date");
 
@@ -133,7 +133,7 @@ export default {
     async info(interaction: ChatInputCommandInteraction<"cached">) {
         const name = interaction.options.getString("name", true).toLowerCase();
         const addon = Array.from(cache).find(a => a.name.toLowerCase() === name);
-        if (!addon) return await interaction.editReply(Messages.error("No addon found with that name."));
+        if (!addon) return await interaction.editReply(notices.error("No addon found with that name."));
         return await interaction.editReply({components: [createAddonComponent(addon)], flags: MessageFlags.IsComponentsV2});
     },
 
