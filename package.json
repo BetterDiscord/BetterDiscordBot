@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "test": "echo \"No test suite yet\" && exit 0",
+    "test": "bun test",
     "start": "bun run --bun src/index.ts",
     "deploy": "bun run --bun scripts/deploy-commands.ts",
     "clear": "bun run --bun scripts/deploy-commands.ts --clear",
@@ -16,6 +16,7 @@
   "author": "Zerebos",
   "license": "MIT",
   "devDependencies": {
+    "@types/bun": "^1.4.0",
     "@types/string-similarity": "^4.0.2",
     "@zerebos/eslint-config": "^1.0.3",
     "@zerebos/eslint-config-typescript": "^1.1.1",

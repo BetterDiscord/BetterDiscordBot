@@ -1,0 +1,580 @@
+{
+  "about": {
+    "data": {
+      "contexts": [
+        0,
+        1,
+        2
+      ],
+      "description": "Gives some information about the bot",
+      "integration_types": [
+        0,
+        1
+      ],
+      "name": "about",
+      "type": 1
+    },
+    "ownerOnly": false
+  },
+  "addons": {
+    "data": {
+      "contexts": [
+        0,
+        1,
+        2
+      ],
+      "description": "Commands for addons.",
+      "integration_types": [
+        0,
+        1
+      ],
+      "name": "addons",
+      "options": [
+        {
+          "description": "Shows the most recently updated addons",
+          "name": "updated",
+          "type": 1
+        },
+        {
+          "description": "Shows the newest added addons",
+          "name": "newest",
+          "type": 1
+        },
+        {
+          "description": "Shows the most liked addons",
+          "name": "top",
+          "type": 1
+        },
+        {
+          "description": "Shows the most downloaded addons",
+          "name": "popular",
+          "type": 1
+        },
+        {
+          "description": "Shows a random addon",
+          "name": "random",
+          "type": 1
+        },
+        {
+          "description": "Searches for an addon by name",
+          "name": "search",
+          "options": [
+            {
+              "autocomplete": true,
+              "description": "Name of the addon to find",
+              "name": "name",
+              "required": true,
+              "type": 3
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Gets information about an addon",
+          "name": "info",
+          "options": [
+            {
+              "autocomplete": true,
+              "description": "Name of the addon to get info about",
+              "name": "name",
+              "required": true,
+              "type": 3
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Browse addons in an interactive way",
+          "name": "browse",
+          "options": [
+            {
+              "autocomplete": true,
+              "description": "tag to browse",
+              "name": "tag",
+              "required": false,
+              "type": 3
+            },
+            {
+              "choices": [
+                {
+                  "name": "Plugin",
+                  "value": "plugin"
+                },
+                {
+                  "name": "Theme",
+                  "value": "theme"
+                }
+              ],
+              "description": "type to browse",
+              "name": "type",
+              "required": false,
+              "type": 3
+            },
+            {
+              "choices": [
+                {
+                  "name": "Newest",
+                  "value": "initial_release_date"
+                },
+                {
+                  "name": "Last Updated",
+                  "value": "latest_release_date"
+                },
+                {
+                  "name": "Most Liked",
+                  "value": "likes"
+                },
+                {
+                  "name": "Popular",
+                  "value": "downloads"
+                }
+              ],
+              "description": "sort method",
+              "name": "sort",
+              "required": false,
+              "type": 3
+            }
+          ],
+          "type": 1
+        }
+      ],
+      "type": 1
+    },
+    "ownerOnly": false
+  },
+  "botadmin": {
+    "data": {
+      "description": "Global settings for the bot during runtime.",
+      "name": "botadmin",
+      "options": [
+        {
+          "description": "Sends messages to different locations",
+          "name": "send",
+          "options": [
+            {
+              "description": "Sends a DM to the specified user.",
+              "name": "user",
+              "options": [
+                {
+                  "description": "User to DM.",
+                  "name": "user",
+                  "required": true,
+                  "type": 6
+                }
+              ],
+              "type": 1
+            },
+            {
+              "description": "Sends a message to the specified channel.",
+              "name": "channel",
+              "options": [
+                {
+                  "channel_types": [
+                    0
+                  ],
+                  "description": "Channel to send a message.",
+                  "name": "channel",
+                  "required": true,
+                  "type": 7
+                }
+              ],
+              "type": 1
+            }
+          ],
+          "type": 2
+        },
+        {
+          "description": "Sets up DM forwarding to a user.",
+          "name": "forwarding",
+          "options": [
+            {
+              "description": "Who to forward DMs to?",
+              "name": "user",
+              "required": false,
+              "type": 6
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Exits the bot gracefully.",
+          "name": "quit",
+          "type": 1
+        }
+      ],
+      "type": 1
+    },
+    "ownerOnly": true
+  },
+  "cleanname": {
+    "data": {
+      "contexts": [
+        0
+      ],
+      "default_member_permissions": "32",
+      "description": "Cleans member display names to match Discord's username standards.",
+      "name": "cleanname",
+      "options": [
+        {
+          "description": "Toggles automatically cleaning new members when they join.",
+          "name": "join",
+          "options": [
+            {
+              "description": "Whether members should have their display name cleaned upon joining.",
+              "name": "enabled",
+              "required": true,
+              "type": 5
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Fixes a display name for a single user.",
+          "name": "user",
+          "options": [
+            {
+              "description": "Whose display name should be cleaned?",
+              "name": "user",
+              "required": true,
+              "type": 6
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Fixes all display names in the server.",
+          "name": "server",
+          "type": 1
+        }
+      ],
+      "type": 1
+    },
+    "ownerOnly": false
+  },
+  "developer": {
+    "data": {
+      "contexts": [
+        0
+      ],
+      "description": "Manage roles for developers in the community.",
+      "name": "developer",
+      "options": [
+        {
+          "description": "Adds a new developer or new role to an existing developer.",
+          "name": "add",
+          "options": [
+            {
+              "description": "Who is the developer in question?",
+              "name": "user",
+              "required": true,
+              "type": 6
+            },
+            {
+              "choices": [
+                {
+                  "name": "Plugin Developer",
+                  "value": "Plugin Developer"
+                },
+                {
+                  "name": "Theme Developer",
+                  "value": "Theme Developer"
+                }
+              ],
+              "description": "Role to add.",
+              "name": "role",
+              "required": true,
+              "type": 3
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Syncs roles between severs.",
+          "name": "sync",
+          "options": [
+            {
+              "description": "Which developer to resync?",
+              "name": "user",
+              "required": true,
+              "type": 6
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Sets a channel to send invite messages.",
+          "name": "channel",
+          "options": [
+            {
+              "description": "Which channel ID to send invites?",
+              "name": "channel",
+              "required": false,
+              "type": 3
+            }
+          ],
+          "type": 1
+        }
+      ],
+      "type": 1
+    },
+    "ownerOnly": false
+  },
+  "moderation": {
+    "data": {
+      "contexts": [
+        0
+      ],
+      "default_member_permissions": "32",
+      "description": "Commands for moderating the server.",
+      "name": "moderation",
+      "options": [
+        {
+          "description": "Toggles the invite filter module.",
+          "name": "invitefilter",
+          "options": [
+            {
+              "description": "Enable or disable",
+              "name": "enable",
+              "required": false,
+              "type": 5
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Toggles the spam detection module.",
+          "name": "detectspam",
+          "options": [
+            {
+              "description": "Enable or disable",
+              "name": "enable",
+              "required": false,
+              "type": 5
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Sets a channel to log bot moderation actions.",
+          "name": "modlog",
+          "options": [
+            {
+              "channel_types": [
+                0
+              ],
+              "description": "Where to log my actions?",
+              "name": "channel",
+              "required": false,
+              "type": 7
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Sets a channel to log join/leave messages.",
+          "name": "joinleave",
+          "options": [
+            {
+              "channel_types": [
+                0
+              ],
+              "description": "Where to log join/leave messages?",
+              "name": "channel",
+              "required": false,
+              "type": 7
+            }
+          ],
+          "type": 1
+        }
+      ],
+      "type": 1
+    },
+    "ownerOnly": false
+  },
+  "selfroles": {
+    "data": {
+      "contexts": [
+        0
+      ],
+      "description": "Allows users to self-assign roles.",
+      "name": "selfroles",
+      "type": 1
+    },
+    "ownerOnly": false
+  },
+  "spam": {
+    "data": {
+      "contexts": [
+        0
+      ],
+      "default_member_permissions": "8192",
+      "description": "Commands for dealing with spam.",
+      "name": "spam",
+      "options": [
+        {
+          "description": "Adds a link to the automod spam link filter",
+          "name": "link",
+          "options": [
+            {
+              "description": "Link to add to the filter",
+              "name": "link",
+              "required": true,
+              "type": 3
+            }
+          ],
+          "type": 1
+        }
+      ],
+      "type": 1
+    },
+    "ownerOnly": false
+  },
+  "tag": {
+    "data": {
+      "contexts": [
+        0
+      ],
+      "description": "Saving and recalling custom tags.",
+      "integration_types": [
+        0
+      ],
+      "name": "tag",
+      "options": [
+        {
+          "description": "List all tags in this server",
+          "name": "list",
+          "type": 1
+        },
+        {
+          "description": "View a tag",
+          "name": "view",
+          "options": [
+            {
+              "autocomplete": true,
+              "description": "Name of the tag to view",
+              "name": "name",
+              "required": true,
+              "type": 3
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Update a tag",
+          "name": "update",
+          "options": [
+            {
+              "autocomplete": true,
+              "description": "Name of the tag to update",
+              "name": "name",
+              "required": true,
+              "type": 3
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Delete a tag",
+          "name": "delete",
+          "options": [
+            {
+              "autocomplete": true,
+              "description": "Name of the tag to delete",
+              "name": "name",
+              "required": true,
+              "type": 3
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Create a new tag",
+          "name": "create",
+          "options": [
+            {
+              "autocomplete": false,
+              "description": "Name of the tag to create",
+              "name": "name",
+              "required": true,
+              "type": 3
+            }
+          ],
+          "type": 1
+        }
+      ],
+      "type": 1
+    },
+    "ownerOnly": false
+  },
+  "voicetext": {
+    "data": {
+      "contexts": [
+        0
+      ],
+      "default_member_permissions": "32",
+      "description": "Binds one voice and one text channel together.",
+      "name": "voicetext",
+      "options": [
+        {
+          "description": "Checks the bound status of a voice channel.",
+          "name": "status",
+          "options": [
+            {
+              "channel_types": [
+                2
+              ],
+              "description": "Which voice channel to check?",
+              "name": "channel",
+              "required": true,
+              "type": 7
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Unbinds a voice channel from it's partner.",
+          "name": "unbind",
+          "options": [
+            {
+              "channel_types": [
+                2
+              ],
+              "description": "Which voice channel to unbind?",
+              "name": "channel",
+              "required": true,
+              "type": 7
+            }
+          ],
+          "type": 1
+        },
+        {
+          "description": "Binds a voice and text channel together.",
+          "name": "bind",
+          "options": [
+            {
+              "channel_types": [
+                2
+              ],
+              "description": "Which voice channel to bind?",
+              "name": "voice",
+              "required": true,
+              "type": 7
+            },
+            {
+              "channel_types": [
+                0
+              ],
+              "description": "Which text channel to bind with?",
+              "name": "text",
+              "required": true,
+              "type": 7
+            }
+          ],
+          "type": 1
+        }
+      ],
+      "type": 1
+    },
+    "ownerOnly": false
+  }
+}
