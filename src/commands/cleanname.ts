@@ -1,5 +1,5 @@
-import {ChatInputCommandInteraction, ComponentType, MessageFlags, PermissionFlagsBits, RoleSelectMenuInteraction, SelectMenuDefaultValueType, SlashCommandBuilder} from "discord.js";
-import {container, row, text, type ComponentMessage} from "../framework";
+import {ApplicationCommandOptionType, ApplicationCommandType, ChatInputCommandInteraction, ComponentType, InteractionContextType, MessageFlags, PermissionFlagsBits, SelectMenuDefaultValueType} from "discord.js";
+import {container, defineCommand, defineComponent, row, text, type ComponentMessage} from "../framework";
 import {humanReadableUptime} from "../util/time";
 import {Accents} from "../util/colors";
 import * as notices from "../util/notices";
@@ -34,48 +34,55 @@ function progress(state: CleanProgress): ComponentMessage {
 }
 
 
-export default {
-    data: new SlashCommandBuilder()
-        .setName("cleanname")
-        .setDescription("Cleans member display names to match Discord's username standards.")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-        .setDMPermission(false)
-        .addSubcommand(
-            c => c.setName("join").setDescription("Toggles automatically cleaning new members when they join.")
-                .addBooleanOption((/** @type {import("@discordjs/builders").SlashCommandBooleanOption} */ option) =>
-                    option.setName("enabled")
-                        .setDescription("Whether members should have their display name cleaned upon joining.")
-                        .setRequired(true)))
-        .addSubcommand(
-            c => c.setName("user").setDescription("Fixes a display name for a single user.")
-                .addUserOption((/** @type {import("@discordjs/builders").SlashCommandUserOption} */ option) =>
-                    option.setName("user")
-                        .setDescription("Whose display name should be cleaned?")
-                        .setRequired(true)))
-        .addSubcommand(c => c.setName("server").setDescription("Fixes all display names in the server.")),
+async function server(interaction: ChatInputCommandInteraction<"cached">) {
+    const controls = row({
+        type: ComponentType.RoleSelect,
+        customId: chooseBypassRoles.customId({}),
+        minValues: 0,
+        maxValues: 25,
+        defaultValues: [{id: interaction.guild.roles.highest.id, type: SelectMenuDefaultValueType.Role}]
+    });
+    await interaction.reply(notices.info("Please select which roles should bypass this cleaning.", {components: [controls]}));
+}
 
 
-    async execute(interaction: ChatInputCommandInteraction<"cached">) {
-        const command = interaction.options.getSubcommand();
-        if (command === "server") return await this.server(interaction);
-        if (command === "user") return await this.user(interaction);
-        if (command === "join") return await this.join(interaction);
-    },
 
 
-    async server(interaction: ChatInputCommandInteraction<"cached">) {
-        const controls = row({
-            type: ComponentType.RoleSelect,
-            customId: "cleanname",
-            minValues: 0,
-            maxValues: 25,
-            defaultValues: [{id: interaction.guild.roles.highest.id, type: SelectMenuDefaultValueType.Role}]
-        });
-        await interaction.reply(notices.info("Please select which roles should bypass this cleaning.", {components: [controls]}));
-    },
+async function user(interaction: ChatInputCommandInteraction<"cached">) {
+    const targetUser = interaction.options.getUser("user", true);
+    const member = interaction.guild.members.cache.get(targetUser.id);
+    if (!member) return await interaction.reply(notices.error("This user is not in the server.", {ephemeral: true}));
+    const isClean = !hasDisallowedChars(member.displayName);
+    if (isClean) return await interaction.reply(notices.info("This member's display name already conforms to the username standards."));
+    try {
+        await member.setNickname(member.user.username);
+        await interaction.reply(notices.success("Successfully cleaned this member's display name."));
+    }
+    catch {
+        await interaction.reply(notices.error("Could not clean this member's display name. Double check that I have permission to do so."));
+    }
+}
 
 
-    async role(interaction: RoleSelectMenuInteraction<"cached">) {
+async function join(interaction: ChatInputCommandInteraction<"cached">) {
+    const toEnable = !!interaction.options.getBoolean("enabled");
+    const guildSettings = await guildDB.get(interaction.guild.id) ?? {};
+    const current = guildSettings.cleanOnJoin;
+    if (current === toEnable) return await interaction.reply(notices.info(`This setting was already ${current ? "enabled" : "disabled"}.`));
+    guildSettings.cleanOnJoin = toEnable;
+    await guildDB.set(interaction.guild.id, guildSettings);
+    await interaction.reply(notices.success(`This setting is now ${toEnable ? "enabled" : "disabled"}.`));
+}
+
+
+/** The bypass-role picker shown by `/cleanname server`. */
+const chooseBypassRoles = defineComponent({
+    id: "cleanname.bypass",
+    kind: "roleSelect",
+    guildOnly: true,
+    params: {},
+
+    async run(interaction) {
         const roleIds = [...interaction.roles.keys()];
 
         const start = Date.now();
@@ -123,32 +130,55 @@ export default {
             stamp: {label: "Completed", at: finish},
             done: true
         }));
+    }
+});
+
+
+export const command = defineCommand({
+    guildOnly: true,
+    data: {
+        type: ApplicationCommandType.ChatInput,
+        name: "cleanname",
+        description: "Cleans member display names to match Discord's username standards.",
+        default_member_permissions: PermissionFlagsBits.ManageGuild.toString(),
+        contexts: [InteractionContextType.Guild],
+        options: [
+            {
+                type: ApplicationCommandOptionType.Subcommand,
+                name: "join",
+                description: "Toggles automatically cleaning new members when they join.",
+                options: [{
+                    type: ApplicationCommandOptionType.Boolean,
+                    name: "enabled",
+                    description: "Whether members should have their display name cleaned upon joining.",
+                    required: true
+                }]
+            },
+            {
+                type: ApplicationCommandOptionType.Subcommand,
+                name: "user",
+                description: "Fixes a display name for a single user.",
+                options: [{
+                    type: ApplicationCommandOptionType.User,
+                    name: "user",
+                    description: "Whose display name should be cleaned?",
+                    required: true
+                }]
+            },
+            {
+                type: ApplicationCommandOptionType.Subcommand,
+                name: "server",
+                description: "Fixes all display names in the server."
+            }
+        ]
     },
 
+    async execute(interaction) {
+        const subcommand = interaction.options.getSubcommand();
+        if (subcommand === "server") return await server(interaction);
+        if (subcommand === "user") return await user(interaction);
+        if (subcommand === "join") return await join(interaction);
+    }
+});
 
-    async user(interaction: ChatInputCommandInteraction<"cached">) {
-        const targetUser = interaction.options.getUser("user", true);
-        const member = interaction.guild.members.cache.get(targetUser.id);
-        if (!member) return await interaction.reply(notices.error("This user is not in the server.", {ephemeral: true}));
-        const isClean = !hasDisallowedChars(member.displayName);
-        if (isClean) return await interaction.reply(notices.info("This member's display name already conforms to the username standards."));
-        try {
-            await member.setNickname(member.user.username);
-            await interaction.reply(notices.success("Successfully cleaned this member's display name."));
-        }
-        catch {
-            await interaction.reply(notices.error("Could not clean this member's display name. Double check that I have permission to do so."));
-        }
-    },
-
-
-    async join(interaction: ChatInputCommandInteraction<"cached">) {
-        const toEnable = !!interaction.options.getBoolean("enabled");
-        const guildSettings = await guildDB.get(interaction.guild.id) ?? {};
-        const current = guildSettings.cleanOnJoin;
-        if (current === toEnable) return await interaction.reply(notices.info(`This setting was already ${current ? "enabled" : "disabled"}.`));
-        guildSettings.cleanOnJoin = toEnable;
-        await guildDB.set(interaction.guild.id, guildSettings);
-        await interaction.reply(notices.success(`This setting is now ${toEnable ? "enabled" : "disabled"}.`));
-    },
-};
+export const components = [chooseBypassRoles];
