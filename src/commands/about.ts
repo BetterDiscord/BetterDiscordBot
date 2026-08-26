@@ -1,14 +1,12 @@
 import childProcess from "child_process";
 import {promisify} from "util";
-import {SlashCommandBuilder, EmbedBuilder, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType} from "discord.js";
+import {SlashCommandBuilder, EmbedBuilder, ChannelType, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType} from "discord.js";
 import type {CommandStats} from "../types";
 import {statsDB} from "../db";
 import {humanReadableUptime} from "../util/time";
 
 
 const exec = promisify(childProcess.exec);
-const inviteLink = `https://discord.com/oauth2/authorize?client_id=${process.env.BOT_CLIENT_ID}&permissions=${process.env.BOT_PERMISSIONS || "0"}&scope=bot%20applications.commands`;
-const userInviteLink = `https://discord.com/oauth2/authorize?client_id=${process.env.BOT_CLIENT_ID}&integration_type=1&scope=applications.commands`;
 
 export default {
     data: new SlashCommandBuilder()
@@ -23,7 +21,7 @@ export default {
 
         aboutEmbed.setColor("Blue");
         aboutEmbed.setAuthor({name: interaction.client.user.username, iconURL: interaction.client.user.displayAvatarURL()});
-        //aboutEmbed.setDescription("**🆕 Now user-installable!** Add to your account for DM access and cross-server profiles.");
+        // aboutEmbed.setDescription("**🆕 Now user-installable!** Add to your account for DM access and cross-server profiles.");
 
         const owner = await interaction.client.users.fetch(process.env.BOT_OWNER_ID!);
         if (owner) aboutEmbed.setFooter({text: `Created by @${owner.username}`, iconURL: owner.displayAvatarURL()});
@@ -107,14 +105,8 @@ export default {
         addField(`Commands Run`, commandsRun, true);
 
         addField(`Uptime`, humanReadableUptime(now - interaction.client.readyAt.valueOf()), true);
-        await interaction.editReply({
-            embeds: [aboutEmbed],
-            /*components: [
-                new ActionRowBuilder<ButtonBuilder>().addComponents(
-                    new ButtonBuilder().setLabel(`Invite ${interaction.client.user.username}`).setStyle(ButtonStyle.Link).setURL(inviteLink).setEmoji("🔗"),
-                    new ButtonBuilder().setLabel("Add to Account").setStyle(ButtonStyle.Link).setURL(userInviteLink).setEmoji("📱")
-                )
-            ]*/
-        });
+        // The invite / "Add to Account" link buttons were parked in 335cf56 along
+        // with their OAuth URL constants; restore them from there if wanted.
+        await interaction.editReply({embeds: [aboutEmbed]});
     },
 };

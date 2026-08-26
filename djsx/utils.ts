@@ -1,7 +1,7 @@
 const isFalseOrNullish = (value: unknown) => value === false || value == null;
 const isNotFalseOrNullish = (value: unknown) => !isFalseOrNullish(value);
 
-export function transformChildrenArray<T>(children: Array<T | T[]>): T[] {
+export function transformChildrenArray<T>(children: ReadonlyArray<T | T[]>): T[] {
     return children.flat(Infinity).filter(isNotFalseOrNullish) as T[];
 }
 
@@ -18,14 +18,14 @@ export function childrenToString(name: string, children: string | string[] | nul
     throw new Error(`${name} children must be a string or an array of strings`);
 }
 
-export function childrenToArray<T>(children: T | T[]): T[] {
+export function childrenToArray<T>(children: T | readonly T[]): T[] {
     if (Array.isArray(children)) {
-        return transformChildrenArray(children);
+        return transformChildrenArray(children as ReadonlyArray<T | T[]>);
     }
     if (isFalseOrNullish(children)) {
         return [];
     }
-    return [children];
+    return [children as T];
 }
 
 export function singleChild<T>(name: string, children: T | T[]): T {

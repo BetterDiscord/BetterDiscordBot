@@ -51,11 +51,11 @@ export const Id: ParamCodec<string> = {
 };
 
 /** Produces a literal union, so a switch over the param can be exhaustive. */
-export function OneOf<const T extends readonly string[]>(...allowed: T): ParamCodec<T[number]> {
+export function oneOf<const T extends readonly string[]>(...allowed: T): ParamCodec<T[number]> {
     return {
         parse(raw) {
             if (!allowed.includes(raw)) throw new IdError(`expected one of ${allowed.join("|")}, got ${JSON.stringify(raw)}`);
-            return raw as T[number];
+            return raw;
         },
         format: value => value
     };

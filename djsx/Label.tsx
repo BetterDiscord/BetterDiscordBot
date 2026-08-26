@@ -8,7 +8,7 @@ export function ModalLabel({children, ...restProps}: LabelProps): LabelComponent
     // console.log("ModalLabel called with children:", children);
     return {
         type: ComponentType.Label,
-        component: singleChild("ModalLabel", children) as LabelComponentData["component"],
+        component: singleChild("ModalLabel", children),
         ...restProps
     };
 }

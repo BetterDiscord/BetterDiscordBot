@@ -70,7 +70,7 @@ export async function loadCommands(directory: string): Promise<LoadedCommand[]> 
         // `export const components = [...]`.
         if (isRecord(module.command)) {
             const command = module.command as unknown as Command;
-            if (!isFn(command.execute)) throw new Error(`${path.basename(file)}: exported command has no execute()`);
+            if (typeof command.execute !== "function") throw new Error(`${path.basename(file)}: exported command has no execute()`);
 
             const components = Array.isArray(module.components) ? module.components as Component[] : [];
             const data = commandData(command.data, file);
@@ -96,7 +96,7 @@ export async function loadCommands(directory: string): Promise<LoadedCommand[]> 
         const handlers: LegacyEntry["handlers"] = {};
         for (const kind of LEGACY_KINDS) {
             const handler = legacyModule[kind];
-            if (isFn(handler)) handlers[kind] = handler.bind(legacyModule) as LegacyEntry["handlers"][LegacyKind];
+            if (isFn(handler)) handlers[kind] = handler.bind(legacyModule);
         }
 
         const entry: LegacyEntry = {name: data.name, ownerOnly: legacyModule.owner === true, handlers};

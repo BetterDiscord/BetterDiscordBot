@@ -45,7 +45,7 @@ const picker = defineComponent({
     id: "selfroles.open",                  // unique namespace, prefix of every id it mints
     kind: "button",                        // fixes the interaction type
     guildOnly: true,
-    params: {mode: OneOf("user", "admin")},
+    params: {mode: oneOf("user", "admin")},
 
     async run(interaction, {mode}) {       // ButtonInteraction<"cached">, mode: "user" | "admin"
         …
@@ -56,7 +56,7 @@ const picker = defineComponent({
 {type: ComponentType.Button, customId: picker.customId({mode: "admin"}), …}
 ```
 
-`OneOf` yields a literal union, so a `switch` over the param can be exhaustive.
+`oneOf` yields a literal union, so a `switch` over the param can be exhaustive.
 A missing param, a wrong type, or a typo in a literal is a compile error.
 
 Custom ids are capped at Discord's 100 characters; `customId()` throws if you

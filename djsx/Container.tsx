@@ -9,5 +9,5 @@ export function Container({children, ...props}: ContainerProps): ContainerCompon
         type: ComponentType.Container,
         components: childrenToArray(children),
         ...props
-    } as ContainerComponentData;
+    };
 }

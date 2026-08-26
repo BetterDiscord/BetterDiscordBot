@@ -3,7 +3,7 @@ import {
     MessageFlags, PermissionFlagsBits, SelectMenuDefaultValueType,
     type InteractionReplyOptions, type InteractionUpdateOptions, type MessageActionRowComponentData
 } from "discord.js";
-import {defineCommand, defineComponent, OneOf, row} from "../framework";
+import {defineCommand, defineComponent, oneOf, row} from "../framework";
 import {selfrolesDB} from "../db";
 import Messages from "../util/messages";
 import Colors from "../util/colors";
@@ -38,7 +38,7 @@ const openPicker = defineComponent({
     id: "selfroles.open",
     kind: "button",
     guildOnly: true,
-    params: {mode: OneOf("user", "admin")},
+    params: {mode: oneOf("user", "admin")},
 
     async run(interaction, {mode}) {
         const assignable = await selfrolesDB.get(interaction.guild.id) ?? [];
@@ -72,9 +72,9 @@ const openPicker = defineComponent({
                 minValues: 0,
                 maxValues: assignable.length,
                 options: assignable.map(id => ({
-                    label: interaction.guild.roles.cache.get(id)?.name ?? id,
-                    value: id,
-                    default: interaction.member.roles.cache.has(id)
+                    "label": interaction.guild.roles.cache.get(id)?.name ?? id,
+                    "value": id,
+                    "default": interaction.member.roles.cache.has(id)
                 }))
             })]
         }));

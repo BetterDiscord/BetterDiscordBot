@@ -8,5 +8,5 @@ export function Modal({children, ...props}: ModalProps): ModalComponentData {
     return {
         components: childrenToArray(children),
         ...props
-    } as ModalComponentData;
+    };
 }

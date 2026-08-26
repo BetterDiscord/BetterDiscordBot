@@ -21,7 +21,7 @@ export interface PaginateOptions<T> {
     interaction: RepliableInteraction;
     items: T[];
     /** Top-level components for one page. Controls are appended automatically. */
-    renderPage(items: T[], page: number, pages: number): readonly PageComponent[];
+    renderPage: (items: T[], page: number, pages: number) => readonly PageComponent[];
     perPage?: number;
     timeout?: number;
     audience?: "invoker" | "anyone";

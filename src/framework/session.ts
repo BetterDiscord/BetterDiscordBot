@@ -34,12 +34,12 @@ export interface SessionOptions<S> {
     interaction: RepliableInteraction;
     initial: S;
     /** Pure: state in, message out. Called again after every accepted action. */
-    render(state: S, options: {ended: boolean;}): InteractionEditReplyOptions;
+    render: (state: S, options: {ended: boolean;}) => InteractionEditReplyOptions;
     /**
      * Return the next state, or `undefined` to acknowledge without re-rendering.
      * `action` is whatever was passed to `sessionId()`.
      */
-    reduce(action: string, state: S, interaction: MessageComponentInteraction): S | undefined | Promise<S | undefined>;
+    reduce: (action: string, state: S, interaction: MessageComponentInteraction) => S | undefined | Promise<S | undefined>;
     timeout?: number;
     /** Who may use the controls. Defaults to whoever ran the command. */
     audience?: "invoker" | "anyone";

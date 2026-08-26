@@ -17,8 +17,7 @@ import type {Command, Component, ComponentKind} from "./registry";
 import {isSessionId} from "./session";
 
 
-type CommandHandler = (interaction: never) => Promise<unknown>;
-type ComponentHandler = (interaction: never, params: never) => Promise<unknown>;
+type LegacyHandler = (interaction: never) => Promise<unknown>;
 
 const KIND_GUARD: {[K in ComponentKind]: (interaction: Interaction) => boolean} = {
     button: interaction => interaction.isButton(),
@@ -38,7 +37,7 @@ export type LegacyKind = "execute" | "autocomplete" | "button" | "modal" | "sele
 export interface LegacyEntry {
     name: string;
     ownerOnly: boolean;
-    handlers: Partial<Record<LegacyKind, CommandHandler>>;
+    handlers: Partial<Record<LegacyKind, LegacyHandler>>;
 }
 
 
@@ -112,7 +111,7 @@ export class Dispatcher {
 
         // Guarded above: `guildOnly` was checked, so the `<"cached">` the handler
         // declares is actually true by this point.
-        await (command!.execute as CommandHandler)(interaction as never);
+        await command!.execute(interaction);
     }
 
 
@@ -126,7 +125,7 @@ export class Dispatcher {
         if (!command?.autocomplete) return await interaction.respond([]);
         if (command.guildOnly && !interaction.inCachedGuild()) return await interaction.respond([]);
 
-        await (command.autocomplete as CommandHandler)(interaction as never);
+        await command.autocomplete(interaction);
     }
 
 
@@ -159,7 +158,7 @@ export class Dispatcher {
             throw error;
         }
 
-        await (component.run as ComponentHandler)(interaction as never, params as never);
+        await component.run(interaction, params);
     }
 
 
