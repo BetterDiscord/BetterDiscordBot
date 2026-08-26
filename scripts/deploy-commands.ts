@@ -60,7 +60,7 @@ if (!shouldClear) {
         }
         else {
             commands.push(command.data);
-            console.log(`🌐 Global command: ${command.name}${command.migrated ? "" : "  (legacy module)"}`);
+            console.log(`🌐 Global command: ${command.name}`);
             if (command.data.integration_types?.includes(1)) console.log(`   📱 User-installable`);
         }
     }

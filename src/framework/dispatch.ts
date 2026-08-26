@@ -5,8 +5,6 @@
  * runtime check that justifies it. That is the point: not zero unsafety, but
  * unsafety that is located, guarded and auditable.
  *
- * The `legacy` half supports command modules that have not been migrated to
- * `defineCommand` yet, and should be deleted once they all have.
  */
 
 import {
@@ -16,8 +14,6 @@ import {IdError, namespaceOf} from "./ids";
 import type {Command, Component, ComponentKind} from "./registry";
 import {isSessionId} from "./session";
 
-
-type LegacyHandler = (interaction: never) => Promise<unknown>;
 
 const KIND_GUARD: {[K in ComponentKind]: (interaction: Interaction) => boolean} = {
     button: interaction => interaction.isButton(),
@@ -30,17 +26,6 @@ const KIND_GUARD: {[K in ComponentKind]: (interaction: Interaction) => boolean} 
 };
 
 
-/** @deprecated Shape of a not-yet-migrated command module. */
-export type LegacyKind = "execute" | "autocomplete" | "button" | "modal" | "select" | "role";
-
-/** @deprecated Remove once every command uses `defineCommand`. */
-export interface LegacyEntry {
-    name: string;
-    ownerOnly: boolean;
-    handlers: Partial<Record<LegacyKind, LegacyHandler>>;
-}
-
-
 export interface DispatcherOptions {
     ownerId: string;
     /** Called before a chat-input command runs. Used for command stats. */
@@ -51,7 +36,6 @@ export interface DispatcherOptions {
 export class Dispatcher {
     private commands = new Map<string, Command>();
     private components = new Map<string, Component>();
-    private legacy = new Map<string, LegacyEntry>();
     private options: DispatcherOptions;
 
     constructor(options: DispatcherOptions) {
@@ -60,7 +44,7 @@ export class Dispatcher {
 
     addCommand(command: Command): void {
         const name = command.data.name;
-        if (this.commands.has(name) || this.legacy.has(name)) throw new Error(`duplicate command "${name}"`);
+        if (this.commands.has(name)) throw new Error(`duplicate command "${name}"`);
         this.commands.set(name, command);
     }
 
@@ -69,14 +53,8 @@ export class Dispatcher {
         this.components.set(component.id, component);
     }
 
-    /** @deprecated */
-    addLegacyCommand(entry: LegacyEntry): void {
-        if (this.commands.has(entry.name) || this.legacy.has(entry.name)) throw new Error(`duplicate command "${entry.name}"`);
-        this.legacy.set(entry.name, entry);
-    }
-
-    get counts(): {commands: number; legacy: number; components: number;} {
-        return {commands: this.commands.size, legacy: this.legacy.size, components: this.components.size};
+    get counts(): {commands: number; components: number;} {
+        return {commands: this.commands.size, components: this.components.size};
     }
 
 
@@ -94,32 +72,22 @@ export class Dispatcher {
 
     private async runCommand(interaction: ChatInputCommandInteraction): Promise<void> {
         const command = this.commands.get(interaction.commandName);
-        const legacy = this.legacy.get(interaction.commandName);
-        if (!command && !legacy) {
+        if (!command) {
             console.error("unregistered command", interaction.commandName);
             return await this.reply(interaction, "That command isn't registered any more.");
         }
 
         await this.options.onCommandRun?.(interaction);
-
-        if (legacy) {
-            if (legacy.ownerOnly && interaction.user.id !== this.options.ownerId) return await this.reply(interaction, "That command is owner-only.");
-            return void await legacy.handlers.execute?.(interaction as never);
-        }
-
-        if (!this.permitted(command!, interaction)) return await this.reply(interaction, "You can't use that command here.");
+        if (!this.permitted(command, interaction)) return await this.reply(interaction, "You can't use that command here.");
 
         // Guarded above: `guildOnly` was checked, so the `<"cached">` the handler
         // declares is actually true by this point.
-        await command!.execute(interaction);
+        await command.execute(interaction);
     }
 
 
     private async runAutocomplete(interaction: Interaction): Promise<void> {
         if (!interaction.isAutocomplete()) return;
-
-        const legacy = this.legacy.get(interaction.commandName);
-        if (legacy) return void await legacy.handlers.autocomplete?.(interaction as never);
 
         const command = this.commands.get(interaction.commandName);
         if (!command?.autocomplete) return await interaction.respond([]);
@@ -136,8 +104,11 @@ export class Dispatcher {
         // lets registered components and sessions share one custom-id space.
         if (isSessionId(interaction.customId)) return;
 
+        // Unknown namespace: it belongs to a live session, whose own collector
+        // handles it. This silence is the contract that lets registered
+        // components and sessions share one custom-id space.
         const component = this.components.get(namespaceOf(interaction.customId));
-        if (!component) return await this.runLegacyComponent(interaction);
+        if (!component) return;
 
         if (!KIND_GUARD[component.kind](interaction)) {
             console.warn(`component "${component.id}" is registered as ${component.kind} but received a ${interaction.isModalSubmit() ? "modal submit" : "component"} interaction`);
@@ -161,24 +132,6 @@ export class Dispatcher {
         await component.run(interaction, params);
     }
 
-
-    /** @deprecated Routing by `customId.split("-")[0]`, kept for unmigrated commands. */
-    private async runLegacyComponent(interaction: Interaction): Promise<void> {
-        if (!interaction.isMessageComponent() && !interaction.isModalSubmit()) return;
-
-        const entry = this.legacy.get(interaction.customId.split("-")[0]);
-        if (!entry) return;
-
-        let kind: LegacyKind | undefined;
-        if (interaction.isButton()) kind = "button";
-        else if (interaction.isModalSubmit()) kind = "modal";
-        else if (interaction.isStringSelectMenu()) kind = "select";
-        else if (interaction.isRoleSelectMenu()) kind = "role";
-        if (!kind) return;
-
-        if (entry.ownerOnly && interaction.user.id !== this.options.ownerId) return;
-        await entry.handlers[kind]?.(interaction as never);
-    }
 
 
     private permitted(definition: {guildOnly?: boolean; ownerOnly?: boolean;}, interaction: Interaction): boolean {

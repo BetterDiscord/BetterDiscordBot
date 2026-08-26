@@ -12,11 +12,9 @@ import fs from "node:fs";
 import path from "node:path";
 import {pathToFileURL} from "node:url";
 import type {RESTPostAPIChatInputApplicationCommandsJSONBody} from "discord.js";
-import type {Dispatcher, LegacyEntry, LegacyKind} from "./dispatch";
+import type {Dispatcher} from "./dispatch";
 import type {Command, Component, EventDef} from "./registry";
 
-
-const LEGACY_KINDS: LegacyKind[] = ["execute", "autocomplete", "button", "modal", "select", "role"];
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 const isFn = (value: unknown): value is (...args: never[]) => Promise<unknown> => typeof value === "function";
@@ -24,10 +22,8 @@ const isFn = (value: unknown): value is (...args: never[]) => Promise<unknown> =
 
 export interface LoadedCommand {
     name: string;
-    /** Ready to send to the API, whichever style the module was written in. */
     data: RESTPostAPIChatInputApplicationCommandsJSONBody;
     ownerOnly: boolean;
-    migrated: boolean;
     register(dispatcher: Dispatcher): void;
 }
 
@@ -45,18 +41,11 @@ async function importModule(file: string): Promise<Record<string, unknown>> {
 }
 
 
-/** Reads `data` off either style, normalising a builder to plain JSON. */
 function commandData(source: unknown, file: string): RESTPostAPIChatInputApplicationCommandsJSONBody {
-    if (!isRecord(source)) throw new Error(`${path.basename(file)}: command has no data`);
-
-    const data: unknown = "toJSON" in source && typeof source.toJSON === "function"
-        ? (source as {toJSON(): unknown;}).toJSON()
-        : source;
-
-    if (!isRecord(data) || typeof data.name !== "string") {
+    if (!isRecord(source) || typeof source.name !== "string") {
         throw new Error(`${path.basename(file)}: command data has no name`);
     }
-    return data as unknown as RESTPostAPIChatInputApplicationCommandsJSONBody;
+    return source as unknown as RESTPostAPIChatInputApplicationCommandsJSONBody;
 }
 
 
@@ -66,46 +55,24 @@ export async function loadCommands(directory: string): Promise<LoadedCommand[]> 
     for (const file of sourceFiles(directory)) {
         const module = await importModule(file);
 
-        // Migrated: `export const command = defineCommand(...)`, plus an optional
-        // `export const components = [...]`.
-        if (isRecord(module.command)) {
-            const command = module.command as unknown as Command;
-            if (typeof command.execute !== "function") throw new Error(`${path.basename(file)}: exported command has no execute()`);
-
-            const components = Array.isArray(module.components) ? module.components as Component[] : [];
-            const data = commandData(command.data, file);
-
-            loaded.push({
-                name: data.name,
-                data,
-                ownerOnly: command.ownerOnly === true,
-                migrated: true,
-                register(dispatcher) {
-                    dispatcher.addCommand(command);
-                    for (const component of components) dispatcher.addComponent(component);
-                }
-            });
-            continue;
+        if (!isRecord(module.command)) {
+            throw new Error(`${path.basename(file)}: no exported command (expected \`export const command = defineCommand({...})\`)`);
         }
 
-        // Not yet migrated: `export default {data, execute, button, ...}`.
-        const legacyModule = isRecord(module.default) ? module.default : module;
-        if (!isFn(legacyModule.execute)) throw new Error(`${path.basename(file)}: no exported command (expected \`export const command\` or a default export with execute())`);
+        const command = module.command as unknown as Command;
+        if (typeof command.execute !== "function") throw new Error(`${path.basename(file)}: exported command has no execute()`);
 
-        const data = commandData(legacyModule.data, file);
-        const handlers: LegacyEntry["handlers"] = {};
-        for (const kind of LEGACY_KINDS) {
-            const handler = legacyModule[kind];
-            if (isFn(handler)) handlers[kind] = handler.bind(legacyModule);
-        }
+        const components = Array.isArray(module.components) ? module.components as Component[] : [];
+        const data = commandData(command.data, file);
 
-        const entry: LegacyEntry = {name: data.name, ownerOnly: legacyModule.owner === true, handlers};
         loaded.push({
             name: data.name,
             data,
-            ownerOnly: entry.ownerOnly,
-            migrated: false,
-            register(dispatcher) {dispatcher.addLegacyCommand(entry);}
+            ownerOnly: command.ownerOnly === true,
+            register(dispatcher) {
+                dispatcher.addCommand(command);
+                for (const component of components) dispatcher.addComponent(component);
+            }
         });
     }
 

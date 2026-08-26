@@ -34,8 +34,8 @@ const dispatcher = new Dispatcher({
 const commands = await loadCommands(path.join(here, "commands"));
 for (const command of commands) command.register(dispatcher);
 
-const {commands: migrated, legacy, components} = dispatcher.counts;
-console.log(`Loaded ${migrated + legacy} commands (${migrated} migrated, ${legacy} legacy) and ${components} components.`);
+const {commands: commandCount, components: componentCount} = dispatcher.counts;
+console.log(`Loaded ${commandCount} commands and ${componentCount} components.`);
 
 client.dispatcher = dispatcher;
 
