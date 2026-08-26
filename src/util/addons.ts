@@ -155,7 +155,7 @@ export function createNavigation(addons: BdWebAddon[], selectedIndex = 0, disabl
 }
 
 
-export async function paginateAddonPages(interaction: ChatInputCommandInteraction<"cached">, addons: BdWebAddon[]) {
+export async function paginateAddonPages(interaction: ChatInputCommandInteraction, addons: BdWebAddon[]) {
     const navigation = createNavigation(addons);
     const pages = addons.map(addon => createAddonComponent(addon));
 
@@ -163,7 +163,7 @@ export async function paginateAddonPages(interaction: ChatInputCommandInteractio
     const collector = msg.createMessageComponentCollector({time: 5 * msInMinute});
 
     let selectedIndex = 0;
-    collector.on("collect", async (i: StringSelectMenuInteraction<"cached">) => {
+    collector.on("collect", async (i: StringSelectMenuInteraction) => {
         if (i.user.id !== interaction.user.id) return await i.reply({content: "You cannot interact with this menu.", flags: MessageFlags.Ephemeral});
 
         const selectedAddonName = i.values[0];
