@@ -6,7 +6,9 @@ import Colors from "../util/colors";
 const fakeDiscordRegex = new RegExp(`([a-zA-Z-\\.]+)?d[il][il]?scorr?(cl|[ldb])([a-zA-Z-\\.]+)?\\.(com|net|app|gift|ru|uk)`, "ig");
 const okayDiscordRegex = new RegExp(`([a-zA-Z-\\.]+\\.)?discord((?:app)|(?:status))?\\.(com|net|app)`, "i");
 const fakeSteamRegex = new RegExp(`str?e[ea]?mcomm?m?un[un]?[un]?[tl]?[il][tl]?ty\\.(com|net|ru|us)`, "ig");
-const sketchyRuRegex = new RegExp(`([a-zA-Z-\\.]+).ru.com`, "ig");
+// No `g` flag: this one is used with .test(), which advances lastIndex on a
+// global regex and would make results alternate between messages.
+const sketchyRuRegex = new RegExp(`([a-zA-Z-\\.]+).ru.com`, "i");
 
 // TODO: consider de-duping with invitefilter event
 export default {

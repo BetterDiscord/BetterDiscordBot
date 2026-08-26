@@ -8,38 +8,57 @@ import {msInHour, msInMinute} from "./time";
 
 
 export const cache = new Set<BdWebAddon>();
+
+/** De-duplicates concurrent refreshes so two commands don't both hit the store. */
+let inFlight: Promise<void> | null = null;
+
+async function loadFromStorage(): Promise<void> {
+    console.log("Loading addon cache from storage...");
+    const storedCache = await globalDB.get("addonCache") as BdWebAddon[] ?? [];
+    for (const addon of storedCache) {
+        cache.add(addon);
+    }
+}
+
+async function refreshFromStore(): Promise<void> {
+    console.log(cache.size ? "Refreshing" : "Building", "addon cache...");
+
+    // Fetch everything before touching what we already have. The previous
+    // version cleared the cache and stamped the timestamp up front, so a failed
+    // request left an empty cache that would not retry for an hour.
+    const fetched: BdWebAddon[] = [];
+    for (const url of [Web.store.plugins, Web.store.themes]) {
+        const res = await request(url);
+        fetched.push(...await res.body.json() as BdWebAddon[]);
+    }
+
+    cache.clear();
+    for (const addon of fetched) {
+        cache.add(addon);
+    }
+
+    await globalDB.set("addonCache", fetched);
+    await globalDB.set("addonCacheLastUpdate", Date.now());
+    console.log(`Cached ${cache.size} addons from store.`);
+}
+
 export async function ensureCache() {
     const previousCacheUpdate = await globalDB.get("addonCacheLastUpdate") as number ?? 0;
     if ((Date.now() - previousCacheUpdate) < msInHour) {
         if (cache.size) return;
-        console.log("Loading addon cache from storage...");
-        const storedCache = await globalDB.get("addonCache") as BdWebAddon[] ?? [];
-        for (const addon of storedCache) {
-            cache.add(addon);
-        }
-        return;
-    }
-    console.log(cache.size ? "Refreshing" : "Building", "addon cache...");
-    await globalDB.set("addonCacheLastUpdate", Date.now());
-
-    // Clear previous cache in DB and in-memory
-    await globalDB.set("addonCache", []);
-    cache.clear();
-
-    let res = await request(Web.store.plugins);
-    let data = await res.body.json() as BdWebAddon[];
-    for (const addon of data) {
-        cache.add(addon);
+        return await loadFromStorage();
     }
 
-    res = await request(Web.store.themes);
-    data = await res.body.json() as BdWebAddon[];
-    for (const addon of data) {
-        cache.add(addon);
+    try {
+        inFlight ??= refreshFromStore().finally(() => {inFlight = null;});
+        await inFlight;
     }
-
-    await globalDB.set("addonCache", Array.from(cache));
-    console.log(`Cached ${cache.size} addons from store.`);
+    catch (error) {
+        // The timestamp was not advanced, so the next call retries. Serve
+        // whatever we have rather than failing the command outright.
+        console.error("Could not refresh addon cache:", error);
+        if (!cache.size) await loadFromStorage();
+    }
 }
 
 

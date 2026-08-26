@@ -3,10 +3,8 @@ import {humanReadableUptime} from "../util/time";
 import Colors from "../util/colors";
 import Messages from "../util/messages";
 import {guildDB} from "../db";
+import {hasDisallowedChars} from "../util/names";
 
-
-
-const weirdCharsRegex = /[^A-Za-z0-9\-_\\. ]/g;
 
 export default {
     data: new SlashCommandBuilder()
@@ -70,7 +68,7 @@ export default {
         const members = interaction.guild.members.cache;
         for (const [, member] of members) {
             // If their name is fine continue
-            if (!weirdCharsRegex.test(member.displayName)) continue;
+            if (!hasDisallowedChars(member.displayName)) continue;
 
             // If they have a role that was selected as a bypass role, continue
             if (member.roles.cache.hasAny(...roleIds)) continue;
@@ -106,7 +104,7 @@ export default {
         const targetUser = interaction.options.getUser("user", true);
         const member = interaction.guild.members.cache.get(targetUser.id);
         if (!member) return await interaction.reply(Messages.error("This user is not in the server.", {ephemeral: true}));
-        const isClean = !weirdCharsRegex.test(member.displayName);
+        const isClean = !hasDisallowedChars(member.displayName);
         if (isClean) return await interaction.reply(Messages.info("This member's display name already conforms to the username standards."));
         try {
             await member.setNickname(member.user.username);
