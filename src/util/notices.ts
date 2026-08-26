@@ -11,11 +11,10 @@
 
 import {
     MessageFlags,
-    type ActionRowData, type ComponentInContainerData, type ContainerComponentData,
-    type MessageActionRowComponentData
+    type ActionRowData, type ComponentInContainerData, type MessageActionRowComponentData
 } from "discord.js";
-import {container, text} from "../framework/ui";
-import Colors from "./colors";
+import {container, text, type ComponentMessage} from "../framework/ui";
+import {Accents} from "./colors";
 
 
 export type NoticeKind = "success" | "info" | "warn" | "error" | "danger";
@@ -28,15 +27,12 @@ export interface NoticeOptions {
     components?: Array<ActionRowData<MessageActionRowComponentData>>;
 }
 
-/** Discord wants an integer for a container accent; Colors are authored as hex. */
-const accent = (hex: string): number => parseInt(hex.replace(/^#/, ""), 16);
-
 const ACCENTS: Record<NoticeKind, number> = {
-    success: accent(Colors.Success),
-    info: accent(Colors.Info),
-    warn: accent(Colors.Warn),
-    error: accent(Colors.Error),
-    danger: accent(Colors.Danger)
+    success: Accents.Success,
+    info: Accents.Info,
+    warn: Accents.Warn,
+    error: Accents.Error,
+    danger: Accents.Danger
 };
 
 const ICONS: Record<NoticeKind, string> = {
@@ -48,10 +44,7 @@ const ICONS: Record<NoticeKind, string> = {
 };
 
 
-export interface Notice {
-    flags: number;
-    components: ContainerComponentData[];
-}
+export type Notice = ComponentMessage;
 
 export function notice(kind: NoticeKind, content: string, options: NoticeOptions = {}): Notice {
     const body: ComponentInContainerData[] = [text(`${ICONS[kind]}   ${content}`)];

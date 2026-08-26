@@ -1,9 +1,37 @@
-import {ActionRowBuilder, ChatInputCommandInteraction, ComponentType, EmbedBuilder, PermissionFlagsBits, RoleSelectMenuBuilder, RoleSelectMenuInteraction, SlashCommandBuilder} from "discord.js";
+import {ChatInputCommandInteraction, ComponentType, MessageFlags, PermissionFlagsBits, RoleSelectMenuInteraction, SelectMenuDefaultValueType, SlashCommandBuilder} from "discord.js";
+import {container, row, text, type ComponentMessage} from "../framework";
 import {humanReadableUptime} from "../util/time";
-import Colors from "../util/colors";
-import Messages from "../util/messages";
+import {Accents} from "../util/colors";
+import * as notices from "../util/notices";
 import {guildDB} from "../db";
 import {hasDisallowedChars} from "../util/names";
+
+
+interface CleanProgress {
+    members: number;
+    fixed: number;
+    failed: number;
+    blurb: string;
+    stamp: {label: string; at: number;};
+    done: boolean;
+}
+
+/**
+ * Replaces the progress embed. Components V2 has no inline field grid, so the
+ * three counters render as one line, and the embed timestamp becomes Discord's
+ * own <t:...> markup so it still localises per viewer.
+ */
+function progress(state: CleanProgress): ComponentMessage {
+    return {
+        flags: MessageFlags.IsComponentsV2,
+        components: [container([
+            text("## Fixing Display Names"),
+            text(state.blurb),
+            text(`**Members** ${state.members.toLocaleString()}\u2003**Fixed** ${state.fixed.toLocaleString()}\u2003**Failed** ${state.failed.toLocaleString()}`),
+            text(`-# ${state.stamp.label} <t:${Math.floor(state.stamp.at / 1000)}:f>`)
+        ], {accentColor: state.done ? Accents.Success : Accents.Info})]
+    };
+}
 
 
 export default {
@@ -36,10 +64,14 @@ export default {
 
 
     async server(interaction: ChatInputCommandInteraction<"cached">) {
-        const controls = new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(
-            new RoleSelectMenuBuilder({type: ComponentType.RoleSelect}).setCustomId("cleanname").setMinValues(0).setMaxValues(25).setDefaultRoles(interaction.guild.roles.highest.id)
-        );
-        await interaction.reply(Messages.info("Please select which roles should bypass this cleaning.", {components: [controls]}));
+        const controls = row({
+            type: ComponentType.RoleSelect,
+            customId: "cleanname",
+            minValues: 0,
+            maxValues: 25,
+            defaultValues: [{id: interaction.guild.roles.highest.id, type: SelectMenuDefaultValueType.Role}]
+        });
+        await interaction.reply(notices.info("Please select which roles should bypass this cleaning.", {components: [controls]}));
     },
 
 
@@ -48,19 +80,14 @@ export default {
 
         const start = Date.now();
 
-        const infoEmbed = new EmbedBuilder();
-        infoEmbed.setColor(Colors.Info);
-        infoEmbed.setTitle("Fixing Display Names");
-        infoEmbed.setDescription(`This will take approximately ${humanReadableUptime(interaction.guild.memberCount * 10)}. Please be patient.`);
-        infoEmbed.setFooter({text: "Started at"});
-        infoEmbed.setTimestamp(start);
-        infoEmbed.setFields(
-            {name: "Members", value: interaction.guild.memberCount.toString(), inline: true},
-            {name: "Fixed", value: "0", inline: true},
-            {name: "Failed", value: "0", inline: true},
-        );
-
-        await interaction.update({embeds: [infoEmbed], components: []});
+        await interaction.update(progress({
+            members: interaction.guild.memberCount,
+            fixed: 0,
+            failed: 0,
+            blurb: `This will take approximately ${humanReadableUptime(interaction.guild.memberCount * 10)}. Please be patient.`,
+            stamp: {label: "Started", at: start},
+            done: false
+        }));
 
         let changed = 0;
         let failed = 0;
@@ -85,33 +112,32 @@ export default {
 
         const finish = Date.now();
 
-        infoEmbed.setFields(
-            {name: "Members", value: members.size.toString(), inline: true},
-            {name: "Fixed", value: changed.toString(), inline: true},
-            {name: "Failed", value: failed.toString(), inline: true},
-        );
-
-        infoEmbed.setDescription(`Operation took ${humanReadableUptime(finish - start)}. Thank you for waiting.`);
-        infoEmbed.setColor(Colors.Success);
-        infoEmbed.setFooter({text: "Completed at"});
-        infoEmbed.setTimestamp(finish);
-
-        await interaction.update({embeds: [infoEmbed]});
+        // editReply, not update: the interaction was already acknowledged above,
+        // so a second update() throws InteractionAlreadyReplied and the final
+        // counts never reached the user.
+        await interaction.editReply(progress({
+            members: members.size,
+            fixed: changed,
+            failed,
+            blurb: `Operation took ${humanReadableUptime(finish - start)}. Thank you for waiting.`,
+            stamp: {label: "Completed", at: finish},
+            done: true
+        }));
     },
 
 
     async user(interaction: ChatInputCommandInteraction<"cached">) {
         const targetUser = interaction.options.getUser("user", true);
         const member = interaction.guild.members.cache.get(targetUser.id);
-        if (!member) return await interaction.reply(Messages.error("This user is not in the server.", {ephemeral: true}));
+        if (!member) return await interaction.reply(notices.error("This user is not in the server.", {ephemeral: true}));
         const isClean = !hasDisallowedChars(member.displayName);
-        if (isClean) return await interaction.reply(Messages.info("This member's display name already conforms to the username standards."));
+        if (isClean) return await interaction.reply(notices.info("This member's display name already conforms to the username standards."));
         try {
             await member.setNickname(member.user.username);
-            await interaction.reply(Messages.success("Successfully cleaned this member's display name."));
+            await interaction.reply(notices.success("Successfully cleaned this member's display name."));
         }
         catch {
-            await interaction.reply(Messages.error("Could not clean this member's display name. Double check that I have permission to do so."));
+            await interaction.reply(notices.error("Could not clean this member's display name. Double check that I have permission to do so."));
         }
     },
 
@@ -120,9 +146,9 @@ export default {
         const toEnable = !!interaction.options.getBoolean("enabled");
         const guildSettings = await guildDB.get(interaction.guild.id) ?? {};
         const current = guildSettings.cleanOnJoin;
-        if (current === toEnable) return await interaction.reply(Messages.info(`This setting was already ${current ? "enabled" : "disabled"}.`));
+        if (current === toEnable) return await interaction.reply(notices.info(`This setting was already ${current ? "enabled" : "disabled"}.`));
         guildSettings.cleanOnJoin = toEnable;
         await guildDB.set(interaction.guild.id, guildSettings);
-        await interaction.reply(Messages.success(`This setting is now ${toEnable ? "enabled" : "disabled"}.`));
+        await interaction.reply(notices.success(`This setting is now ${toEnable ? "enabled" : "disabled"}.`));
     },
 };

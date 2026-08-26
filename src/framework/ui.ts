@@ -12,8 +12,23 @@
 import {
     ComponentType,
     type ActionRowData, type ComponentInContainerData, type ContainerComponentData,
-    type MessageActionRowComponentData
+    type MessageActionRowComponentData, type TopLevelComponentData
 } from "discord.js";
+
+
+/**
+ * A Components V2 message payload, accepted by reply / editReply / followUp /
+ * update / send alike.
+ *
+ * `flags` is deliberately `number` rather than the MessageFlags enum. An
+ * unannotated `MessageFlags.IsComponentsV2` widens to the whole enum, which is
+ * not assignable to the narrower per-method flag unions discord.js declares;
+ * `number` is assignable to a numeric enum and so satisfies all of them.
+ */
+export interface ComponentMessage {
+    flags: number;
+    components: TopLevelComponentData[];
+}
 
 
 export const row = (...components: MessageActionRowComponentData[]): ActionRowData<MessageActionRowComponentData> => ({
