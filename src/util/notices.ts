@@ -1,0 +1,61 @@
+/**
+ * Short status messages, as Components V2 containers.
+ *
+ * These replace the `<Success>` / `<Error>` / `<Info>` / `<Warn>` JSX widgets
+ * from djsx and produce the same payload.
+ *
+ * NOTE: this is one of two message layers in the codebase right now. The other
+ * is the embed-based `Messages` class in `./messages.ts`, which the unmigrated
+ * commands still use. Collapsing them onto this one is the next pass.
+ */
+
+import {MessageFlags, type ContainerComponentData} from "discord.js";
+import {container, text} from "../framework/ui";
+import Colors from "./colors";
+
+
+export type NoticeKind = "success" | "info" | "warn" | "error" | "danger";
+
+export interface NoticeOptions {
+    ephemeral?: boolean;
+    /** Extra message flags to merge in. */
+    flags?: number;
+}
+
+/** Discord wants an integer for a container accent; Colors are authored as hex. */
+const accent = (hex: string): number => parseInt(hex.replace(/^#/, ""), 16);
+
+const ACCENTS: Record<NoticeKind, number> = {
+    success: accent(Colors.Success),
+    info: accent(Colors.Info),
+    warn: accent(Colors.Warn),
+    error: accent(Colors.Error),
+    danger: accent(Colors.Danger)
+};
+
+const ICONS: Record<NoticeKind, string> = {
+    success: ":white_check_mark:",
+    info: ":information_source:",
+    warn: ":warning:",
+    error: ":no_entry:",
+    danger: ":no_entry:"
+};
+
+
+export interface Notice {
+    flags: number;
+    components: ContainerComponentData[];
+}
+
+export function notice(kind: NoticeKind, content: string, options: NoticeOptions = {}): Notice {
+    return {
+        flags: MessageFlags.IsComponentsV2 | (options.ephemeral ? MessageFlags.Ephemeral : 0) | (options.flags ?? 0),
+        components: [container([text(`${ICONS[kind]}   ${content}`)], {accentColor: ACCENTS[kind]})]
+    };
+}
+
+export const success = (content: string, options?: NoticeOptions): Notice => notice("success", content, options);
+export const info = (content: string, options?: NoticeOptions): Notice => notice("info", content, options);
+export const warn = (content: string, options?: NoticeOptions): Notice => notice("warn", content, options);
+export const error = (content: string, options?: NoticeOptions): Notice => notice("error", content, options);
+export const danger = (content: string, options?: NoticeOptions): Notice => notice("danger", content, options);
