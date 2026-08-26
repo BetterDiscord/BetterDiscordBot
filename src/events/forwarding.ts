@@ -1,4 +1,6 @@
-import {EmbedBuilder, Events, type Message} from "discord.js";
+import {Events, MessageFlags, type Message} from "discord.js";
+import {container, text} from "../framework";
+import {Accents} from "../util/colors";
 import {globalDB} from "../db";
 
 
@@ -18,16 +20,18 @@ export default {
         const user = message.client.users.cache.get(target);
         if (!user) return;
 
-        const embed = new EmbedBuilder()
-            .setAuthor({name: `${message.author.displayName} (${message.author.id})`, iconURL: message.author.displayAvatarURL()})
-            .setDescription(message.content ?? "\u200B");
+        const lines = [
+            `### ${message.author.displayName} (${message.author.id})`,
+            message.content || "\u200B"
+        ];
 
-        if (message.attachments.size) {
-            for (const [id, att] of message.attachments) {
-                embed.addFields({name: att.name, value: `[${id}](${att.url})`});
-            }
+        for (const [id, attachment] of message.attachments) {
+            lines.push(`**${attachment.name}** — [${id}](${attachment.url})`);
         }
 
-        await user.send({embeds: [embed]});
+        await user.send({
+            flags: MessageFlags.IsComponentsV2,
+            components: [container(lines.map(text), {accentColor: Accents.Info})]
+        });
     },
 };

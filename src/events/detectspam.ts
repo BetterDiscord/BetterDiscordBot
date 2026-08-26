@@ -1,6 +1,6 @@
-import {EmbedBuilder, Events, Message, PermissionFlagsBits} from "discord.js";
+import {Events, Message, PermissionFlagsBits} from "discord.js";
 import {guildDB} from "../db";
-import Colors from "../util/colors";
+import {sendModLog} from "../util/modlog";
 
 
 const fakeDiscordRegex = new RegExp(`([a-zA-Z-\\.]+)?d[il][il]?scorr?(cl|[ldb])([a-zA-Z-\\.]+)?\\.(com|net|app|gift|ru|uk)`, "ig");
@@ -64,26 +64,24 @@ export default {
             }
         }
 
-        const modlogId = current.modlog;
-        const modlogChannel = message.guild.channels.cache.get(modlogId!);
-        if (!modlogId || !modlogChannel || !modlogChannel.isTextBased()) return; // Can't log
-
-        const dEmbed = new EmbedBuilder().setColor(Colors.Info)
-            .setAuthor({name: message.author.username, iconURL: message.author.displayAvatarURL()})
-            .setDescription(`Message sent by ${message.author.username} in ${message.channel.name}\n\n` + message.content)
-            .addFields({name: "Reason", value: reason})
-            .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
-        await modlogChannel.send({embeds: [dEmbed]});
-
+        await sendModLog(message.guild, current.modlog, {
+            heading: message.author.username,
+            iconUrl: message.author.displayAvatarURL(),
+            body: `Message sent by ${message.author.username} in ${message.channel.name}\n\n${message.content}`,
+            reason,
+            userId: message.author.id,
+            at: message.createdTimestamp
+        });
 
         if (didMute) {
-            const mEmbed = new EmbedBuilder().setColor(Colors.Info)
-                .setAuthor({name: "Member Muted", iconURL: message.author.displayAvatarURL()})
-                .setDescription(`${message.author.displayName} ${message.author.tag}`)
-                .addFields({name: "Reason", value: reason})
-                .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
-
-            await modlogChannel.send({embeds: [mEmbed]});
+            await sendModLog(message.guild, current.modlog, {
+                heading: "Member Muted",
+                iconUrl: message.author.displayAvatarURL(),
+                body: `${message.author.displayName} ${message.author.tag}`,
+                reason,
+                userId: message.author.id,
+                at: message.createdTimestamp
+            });
         }
     },
 };

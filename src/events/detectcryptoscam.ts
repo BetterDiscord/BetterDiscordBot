@@ -1,6 +1,6 @@
-import {EmbedBuilder, Events, Message, PermissionFlagsBits} from "discord.js";
+import {Events, Message, PermissionFlagsBits} from "discord.js";
 import {guildDB} from "../db";
-import Colors from "../util/colors";
+import {sendModLog} from "../util/modlog";
 
 
 const TIMEOUT_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -55,17 +55,14 @@ export default {
 
 
         if (didTimeout) {
-            const modlogId = current.modlog;
-            const modlogChannel = message.guild.channels.cache.get(modlogId!);
-            if (!modlogId || !modlogChannel || !modlogChannel.isTextBased()) return; // Can't log
-
-            const mEmbed = new EmbedBuilder().setColor(Colors.Info)
-                .setAuthor({name: "Member Timed Out", iconURL: message.author.displayAvatarURL()})
-                .setDescription(`${message.author.displayName} ${message.author.tag}`)
-                .addFields({name: "Reason", value: "Detected Crypto Scam"})
-                .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
-
-            await modlogChannel.send({embeds: [mEmbed]});
+            await sendModLog(message.guild, current.modlog, {
+                heading: "Member Timed Out",
+                iconUrl: message.author.displayAvatarURL(),
+                body: `${message.author.displayName} ${message.author.tag}`,
+                reason: "Detected Crypto Scam",
+                userId: message.author.id,
+                at: message.createdTimestamp
+            });
         }
     },
 };

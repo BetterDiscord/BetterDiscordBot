@@ -15,6 +15,12 @@ export default {
         .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
         .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel),
 
+    /**
+     * The one place that still uses an embed rather than a Components V2
+     * container. The stats below are laid out as inline fields, three to a row;
+     * V2 has no field grid and faking one with padded text does not survive
+     * different client widths. Everything else in the bot sends V2.
+     */
     async execute(interaction: ChatInputCommandInteraction) {
         await interaction.deferReply();
         const aboutEmbed = new EmbedBuilder();
