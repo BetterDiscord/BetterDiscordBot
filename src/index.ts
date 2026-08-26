@@ -1,9 +1,11 @@
-import fs from "node:fs";
 import path from "node:path";
-import {ActivityType, Client, Collection, GatewayIntentBits, Partials} from "discord.js";
-import type {CommandModule, EventModule} from "./types";
-import {pathToFileURL} from "node:url";
+import {fileURLToPath} from "node:url";
+import {ActivityType, Client, GatewayIntentBits, Partials} from "discord.js";
+import {Dispatcher, loadCommands, loadEvents} from "./framework";
+import {recordCommandRun} from "./util/stats";
 
+
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 // Create a new client instance
 const client = new Client({
@@ -22,37 +24,29 @@ const client = new Client({
 });
 
 
-client.commands = new Collection<string, CommandModule>();
-const commandsPath = path.join(__dirname, "commands");
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".ts") || file.endsWith(".tsx"));
+// Build the dispatcher up front so a malformed command or a duplicate component
+// namespace fails at startup rather than on the first interaction.
+const dispatcher = new Dispatcher({
+    ownerId: process.env.BOT_OWNER_ID!,
+    onCommandRun: recordCommandRun
+});
 
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = await import(pathToFileURL(filePath).href) as {default: CommandModule;};
+const commands = await loadCommands(path.join(here, "commands"));
+for (const command of commands) command.register(dispatcher);
 
-    // Handle both default and named exports
-    const commandData = "default" in command ? command.default : command;
+const {commands: migrated, legacy, components} = dispatcher.counts;
+console.log(`Loaded ${migrated + legacy} commands (${migrated} migrated, ${legacy} legacy) and ${components} components.`);
 
-    // Set a new item in the Collection
-    // With the key as the command name and the value as the exported module
-    client.commands.set(commandData.data.name, commandData);
+client.dispatcher = dispatcher;
+
+
+const events = await loadEvents(path.join(here, "events"));
+for (const event of events) {
+    if (event.once) client.once(event.name, (...args) => void event.execute(...args));
+    else client.on(event.name, (...args) => void event.execute(...args));
 }
+console.log(`Registered ${events.length} event listeners.`);
 
-const eventsPath = path.join(__dirname, "events");
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".ts") || file.endsWith(".tsx"));
-
-for (const file of eventFiles) {
-    const filePath = path.join(eventsPath, file);
-    const event = await import(pathToFileURL(filePath).href) as {default: EventModule;};
-    // Handle both default and named exports
-    const eventData = event.default || event;
-    if (eventData.once) {
-        client.once(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
-    }
-    else {
-        client.on(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
-    }
-}
 
 // Login to Discord with your client's token
 await client.login(process.env.BOT_TOKEN);

@@ -1,9 +1,8 @@
-import fs from "node:fs";
 import path from "node:path";
-import {fileURLToPath, pathToFileURL} from "node:url";
+import {fileURLToPath} from "node:url";
 import {REST, type RESTPostAPIChatInputApplicationCommandsJSONBody} from "discord.js";
 import {API} from "@discordjs/core";
-import type {CommandModule} from "../src/types";
+import {loadCommands} from "../src/framework";
 import "dotenv/config";
 
 
@@ -48,32 +47,21 @@ async function setCommands(globalCommands: RESTPostAPIChatInputApplicationComman
 }
 
 if (!shouldClear) {
-    const commands = [];
-    const ownerCommands = [];
-    const commandsPath = path.join(__dirname, "..", "src", "commands");
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".ts") || file.endsWith(".tsx"));
+    const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
+    const ownerCommands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
 
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const commandModule = await import(pathToFileURL(filePath).href) as CommandModule | {default: CommandModule;};
-        const command = ("default" in commandModule) ? commandModule.default : commandModule;
-
-        if (!command.data) {
-            console.warn(`⚠️  Command ${file} has no data property, skipping...`);
-            continue;
-        }
-
-        const commandData = "toJSON" in command.data ? command.data.toJSON() : command.data;
-
+    // Shared with the bot's own startup path, so what gets deployed is exactly
+    // what gets registered. Throws on a malformed module instead of skipping it.
+    for (const command of await loadCommands(path.join(__dirname, "..", "src", "commands"))) {
         // Separate owner commands to "privileged" guild
-        if (command.owner) {
-            ownerCommands.push(commandData);
-            console.log(`🔒 Owner command: ${commandData.name}`);
+        if (command.ownerOnly) {
+            ownerCommands.push(command.data);
+            console.log(`🔒 Owner command: ${command.name}`);
         }
         else {
-            commands.push(commandData);
-            console.log(`🌐 Global command: ${commandData.name}`);
-            if (commandData.integration_types?.includes(1)) console.log(`   📱 User-installable`);
+            commands.push(command.data);
+            console.log(`🌐 Global command: ${command.name}${command.migrated ? "" : "  (legacy module)"}`);
+            if (command.data.integration_types?.includes(1)) console.log(`   📱 User-installable`);
         }
     }
 

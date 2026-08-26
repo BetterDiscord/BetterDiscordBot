@@ -3,7 +3,7 @@ import Messages from "../util/messages";
 import type {BdWebAddon, BdWebTag} from "../types";
 import Similarity from "string-similarity";
 import Web from "../util/web";
-import Paginator from "../paginator";
+import {paginate} from "../paginator";
 import {cache, ensureCache, createAddonComponent, paginateAddonPages, sortAddons, createAddonList} from "../util/addons";
 
 
@@ -90,14 +90,12 @@ export default {
         if (tag) title.push(`with tag \`${tag}\``);
         title.push(`sorted by ${sort.replace(/_/g, " ")}`);
 
-        const paginator = new Paginator<BdWebAddon>({
+        await paginate<BdWebAddon>({
             interaction,
             items: filteredAddons,
-            itemsPerPage: 3,
-            renderPage: addons => createAddonList(`${title.join(" ")}`, addons),
+            perPage: 3,
+            renderPage: addons => createAddonList(title.join(" "), addons),
         });
-
-        await paginator.paginate();
     },
 
     async search(interaction: ChatInputCommandInteraction<"cached">) {
