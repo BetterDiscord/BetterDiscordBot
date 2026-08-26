@@ -1,29 +1,41 @@
-import {AutocompleteInteraction, ChatInputCommandInteraction, MessageFlags, type ModalComponentData} from "discord.js";
+import {
+    ApplicationCommandOptionType, ApplicationCommandType, ApplicationIntegrationType,
+    AutocompleteInteraction, ChatInputCommandInteraction, ComponentType, InteractionContextType,
+    MessageFlags, type RESTPostAPIChatInputApplicationCommandsJSONBody
+} from "discord.js";
 import type {AtLeast, Tag} from "../types";
 import {tagsDB} from "../db";
 import {msInMinute} from "../util/time";
-import {Tag as TagComponent, UpdateTagModal} from "../components/tags";
-import {ComponentMessage, Container, TextDisplay, type MessageOptions} from "@djsx";
-import {Error, Info, Success} from "@djsx/widgets/Messages";
-import {SlashCommand, StringOption, Subcommand} from "@djsx/commands/Command";
+import {tagContainer, updateTagModal} from "../components/tags";
+import {error, info, success} from "../util/notices";
+
+
+const nameOption = (description: string, autocomplete: boolean) => ({
+    type: ApplicationCommandOptionType.String as const,
+    name: "name",
+    description,
+    required: true,
+    autocomplete
+});
+
+const data: RESTPostAPIChatInputApplicationCommandsJSONBody = {
+    type: ApplicationCommandType.ChatInput,
+    name: "tag",
+    description: "Saving and recalling custom tags.",
+    contexts: [InteractionContextType.Guild],
+    integration_types: [ApplicationIntegrationType.GuildInstall],
+    options: [
+        {type: ApplicationCommandOptionType.Subcommand, name: "list", description: "List all tags in this server"},
+        {type: ApplicationCommandOptionType.Subcommand, name: "view", description: "View a tag", options: [nameOption("Name of the tag to view", true)]},
+        {type: ApplicationCommandOptionType.Subcommand, name: "update", description: "Update a tag", options: [nameOption("Name of the tag to update", true)]},
+        {type: ApplicationCommandOptionType.Subcommand, name: "delete", description: "Delete a tag", options: [nameOption("Name of the tag to delete", true)]},
+        {type: ApplicationCommandOptionType.Subcommand, name: "create", description: "Create a new tag", options: [nameOption("Name of the tag to create", false)]}
+    ]
+};
 
 
 export default {
-    data: <SlashCommand name="tag" description="Saving and recalling custom tags." guildInstall guildContext>
-        <Subcommand name="list" description="List all tags in this server" />
-        <Subcommand name="view" description="View a tag">
-            <StringOption name="name" description="Name of the tag to view" required autocomplete />
-        </Subcommand>
-        <Subcommand name="update" description="Update a tag">
-            <StringOption name="name" description="Name of the tag to update" required autocomplete />
-        </Subcommand>
-        <Subcommand name="delete" description="Delete a tag">
-            <StringOption name="name" description="Name of the tag to delete" required autocomplete />
-        </Subcommand>
-        <Subcommand name="create" description="Create a new tag">
-            <StringOption name="name" description="Name of the tag to create" required autocomplete={false} />
-        </Subcommand>
-    </SlashCommand>,
+    data,
 
     /**
      * Main function for tag command
@@ -36,7 +48,7 @@ export default {
         if (command === "delete") return await this.delete(interaction);
         if (command === "list") return await this.list(interaction);
 
-        return await interaction.reply(<Error ephemeral>This command is not yet implemented.</Error> as MessageOptions);
+        return await interaction.reply(error("This command is not yet implemented.", {ephemeral: true}));
     },
 
     async view(interaction: ChatInputCommandInteraction<"cached">) {
@@ -45,48 +57,47 @@ export default {
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
         if (!tag) {
-            return await interaction.editReply(<Error>Tag with name `{tagName}` does not exist.</Error> as MessageOptions);
+            return await interaction.editReply(error(`Tag with name \`${tagName}\` does not exist.`));
         }
 
-        return await interaction.editReply(
-            (<ComponentMessage>
-                <TagComponent {...tag} />
-            </ComponentMessage>) as MessageOptions
-        );
+        return await interaction.editReply({
+            flags: MessageFlags.IsComponentsV2,
+            components: [tagContainer(tag)]
+        });
     },
 
     async create(interaction: ChatInputCommandInteraction<"cached">) {
-        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.reply(<Error ephemeral>You do not have permission to create tags.</Error> as MessageOptions);
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.reply(error("You do not have permission to create tags.", {ephemeral: true}));
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
-        if (tag) return await interaction.reply(<Error ephemeral>Tag with name `{tagName}` already exists.</Error> as MessageOptions);
+        if (tag) return await interaction.reply(error(`Tag with name \`${tagName}\` already exists.`, {ephemeral: true}));
         return await this.showTagModal(interaction, {name: tagName});
     },
 
     async update(interaction: ChatInputCommandInteraction<"cached">) {
-        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.reply(<Error ephemeral>You do not have permission to update tags.</Error> as MessageOptions);
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.reply(error("You do not have permission to update tags.", {ephemeral: true}));
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
-        if (!tag) return await interaction.reply(<Error ephemeral>Tag with name `{tagName}` does not exist.</Error> as MessageOptions);
+        if (!tag) return await interaction.reply(error(`Tag with name \`${tagName}\` does not exist.`, {ephemeral: true}));
         return await this.showTagModal(interaction, tag);
     },
 
     async delete(interaction: ChatInputCommandInteraction<"cached">) {
         await interaction.deferReply({flags: MessageFlags.Ephemeral});
-        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(<Error>You do not have permission to delete tags.</Error> as MessageOptions);
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(error("You do not have permission to delete tags."));
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
         if (!tag) {
-            return await interaction.editReply(<Error>Tag with name `{tagName}` does not exist.</Error> as MessageOptions);
+            return await interaction.editReply(error(`Tag with name \`${tagName}\` does not exist.`));
         }
 
         delete guildTags[tagName];
         await tagsDB.set(interaction.guildId, guildTags);
 
-        return await interaction.editReply(<Success>Tag with name `{tagName}` has been deleted.</Success> as MessageOptions);
+        return await interaction.editReply(success(`Tag with name \`${tagName}\` has been deleted.`));
     },
 
     async list(interaction: ChatInputCommandInteraction<"cached">) {
@@ -94,23 +105,26 @@ export default {
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tagNames = Object.keys(guildTags);
         if (tagNames.length === 0) {
-            return await interaction.editReply(<Info>There are no tags in this server yet.</Info> as MessageOptions);
+            return await interaction.editReply(info("There are no tags in this server yet."));
         }
 
-        return await interaction.editReply(
-            <ComponentMessage>
-                <Container>
-                    <TextDisplay>{`**Tags in this server:**\n${tagNames.map(name => `- \`${name}\``).join("\n")}`}</TextDisplay>
-                </Container>
-            </ComponentMessage> as MessageOptions
-        );
+        return await interaction.editReply({
+            flags: MessageFlags.IsComponentsV2,
+            components: [{
+                type: ComponentType.Container,
+                components: [{
+                    type: ComponentType.TextDisplay,
+                    content: `**Tags in this server:**\n${tagNames.map(name => `- \`${name}\``).join("\n")}`
+                }]
+            }]
+        });
     },
 
 
     async showTagModal(interaction: ChatInputCommandInteraction<"cached">, tag: AtLeast<Tag, "name">) {
         const isUpdating = !!tag.content;
 
-        await interaction.showModal(<UpdateTagModal {...tag} /> as ModalComponentData);
+        await interaction.showModal(updateTagModal(tag));
 
         try {
             const modalInteraction = await interaction.awaitModalSubmit({time: msInMinute * 5});
@@ -127,10 +141,10 @@ export default {
             };
             await tagsDB.set(interaction.guildId, guildTags);
 
-            await modalInteraction.reply(<Success>Tag `{tag.name}` has been {isUpdating ? "updated" : "created"} successfully!</Success> as MessageOptions);
+            await modalInteraction.reply(success(`Tag \`${tag.name}\` has been ${isUpdating ? "updated" : "created"} successfully!`));
         }
         catch {
-            await interaction.followUp(<Error>Modal submission timed out!</Error> as MessageOptions);
+            await interaction.followUp(error("Modal submission timed out!"));
         }
     },
 
