@@ -46,29 +46,40 @@ async function browse(interaction: ChatInputCommandInteraction) {
 
 async function search(interaction: ChatInputCommandInteraction) {
     const name = interaction.options.getString("name", true).toLowerCase();
-    let results: BdWebAddon[] = [];
+    const results: BdWebAddon[] = [];
     for (const addon of cache) {
         if (addon.name.toLowerCase().includes(name) || (addon.description?.toLowerCase().includes(name))) {
             results.push(addon);
         }
     }
 
-    results = Similarity.findBestMatch(name, results.map(a => a.name)).ratings
+    // findBestMatch throws on an empty candidate list, so a search that matched
+    // nothing used to surface as the dispatcher's generic error.
+    if (!results.length) {
+        return await interaction.editReply(notices.info(`No addons matched \`${name}\`.`));
+    }
+
+    const ranked = Similarity.findBestMatch(name, results.map(addon => addon.name)).ratings
         .sort((a, b) => b.rating - a.rating)
         .slice(0, 10)
-        .map(rating => results.find(a => a.name === rating.target)!)
-        .filter(a => !!a);
+        .map(rating => results.find(addon => addon.name === rating.target))
+        .filter((addon): addon is BdWebAddon => addon !== undefined);
 
-    await paginateAddonPages(interaction, results);
+    await paginateAddonPages(interaction, ranked, `No addons matched \`${name}\`.`);
 }
 
 
 async function top10(interaction: ChatInputCommandInteraction, sortBy: "likes" | "downloads" | "initial_release_date" | "latest_release_date") {
-    await paginateAddonPages(interaction, sortAddons(Array.from(cache), sortBy).slice(0, 10));
+    await paginateAddonPages(interaction, sortAddons(Array.from(cache), sortBy).slice(0, 10), "The addon store is empty right now. Please try again shortly.");
 }
 
 async function random(interaction: ChatInputCommandInteraction) {
     const addonsArray = Array.from(cache);
+    // An empty cache would otherwise index past the end and render `undefined`.
+    if (!addonsArray.length) {
+        return await interaction.editReply(notices.info("The addon store is empty right now. Please try again shortly."));
+    }
+
     const randomAddon = addonsArray[Math.floor(Math.random() * addonsArray.length)];
     return await interaction.editReply({components: [createAddonComponent(randomAddon)], flags: MessageFlags.IsComponentsV2});
 }

@@ -7,17 +7,27 @@ import {EventEmitter} from "node:events";
 import type {RepliableInteraction} from "discord.js";
 
 
+export interface PressOptions {
+    userId?: string;
+    /** Present for a select menu; its absence makes the stub a button. */
+    values?: string[];
+}
+
 export interface SessionHarness {
     interaction: RepliableInteraction;
     /** Every payload a viewer would have seen, from editReply or update. */
     shown: Array<Record<string, unknown>>;
-    press(action: string, userId?: string): Promise<Array<Record<string, unknown>>>;
+    /** Returns anything the component replied with, e.g. an ownership refusal. */
+    press(action: string, options?: PressOptions): Promise<Array<Record<string, unknown>>>;
     end(): Promise<void>;
 }
 
 
 export function sessionHarness(ownerId = "owner"): SessionHarness {
-    const collector = new EventEmitter();
+    const collector = Object.assign(new EventEmitter(), {
+        // runSession calls stop() on its error path.
+        stop: () => {collector.emit("end");}
+    });
     const shown: Array<Record<string, unknown>> = [];
 
     const interaction = {
@@ -47,14 +57,24 @@ export function sessionHarness(ownerId = "owner"): SessionHarness {
         interaction: interaction as unknown as RepliableInteraction,
         shown,
 
-        async press(action, userId = ownerId) {
+        async press(action, {userId = ownerId, values}: PressOptions = {}) {
             await whenListening();
             const refusals: Array<Record<string, unknown>> = [];
+            const isSelect = values !== undefined;
             const component = {
                 customId: `~${action}`,
                 user: {id: userId},
+                values: values ?? [],
                 replied: false,
                 deferred: false,
+
+                isButton: () => !isSelect,
+                isStringSelectMenu: () => isSelect,
+                isRoleSelectMenu: () => false,
+                isUserSelectMenu: () => false,
+                isChannelSelectMenu: () => false,
+                isMentionableSelectMenu: () => false,
+
                 reply: (payload: Record<string, unknown>) => {refusals.push(payload); return Promise.resolve();},
                 update: (payload: Record<string, unknown>) => {shown.push(payload); return Promise.resolve();},
                 deferUpdate: () => Promise.resolve()

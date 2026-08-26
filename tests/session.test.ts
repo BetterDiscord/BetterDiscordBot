@@ -57,7 +57,7 @@ describe("runSession", () => {
         const done = counter(harness);
         await harness.press("inc");
 
-        const refusals = await harness.press("inc", "someone-else");
+        const refusals = await harness.press("inc", {userId: "someone-else"});
         expect(String(refusals[0]?.content)).toContain("belongs to someone else");
 
         await harness.end();
@@ -73,7 +73,7 @@ describe("runSession", () => {
             render: n => ({content: `n=${n}`}),
             reduce: (action, n) => action === "inc" ? n + 1 : undefined
         });
-        expect(await harness.press("inc", "a-stranger")).toEqual([]);
+        expect(await harness.press("inc", {userId: "a-stranger"})).toEqual([]);
         await harness.end();
         expect(await done).toBe(1);
     });

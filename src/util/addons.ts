@@ -1,10 +1,11 @@
 import {
-    ButtonStyle, ChatInputCommandInteraction, ComponentType, MessageFlags, SeparatorSpacingSize,
-    StringSelectMenuInteraction,
+    ButtonStyle, ComponentType, MessageFlags, SeparatorSpacingSize,
     type ActionRowData, type ComponentInContainerData, type ContainerComponentData,
-    type MessageActionRowComponentData, type SectionComponentData, type TextDisplayComponentData
+    type MessageActionRowComponentData, type RepliableInteraction, type SectionComponentData,
+    type TextDisplayComponentData
 } from "discord.js";
-import {container, row, text} from "../framework";
+import {container, row, runSession, sessionId, text} from "../framework";
+import * as notices from "./notices";
 import type {BdWebAddon} from "../types";
 
 import Web from "../util/web";
@@ -152,10 +153,13 @@ export function createAddonList(title: string, addons: BdWebAddon[]): [TextDispl
 }
 
 
+/** The select menu action, as carried in its session-owned custom id. */
+const NAVIGATE = "addons-navigate";
+
 export function createNavigation(addons: BdWebAddon[], selectedIndex = 0, disabled = false): ActionRowData<MessageActionRowComponentData> {
     return row({
         type: ComponentType.StringSelect,
-        customId: "addons-navigation",
+        customId: sessionId(NAVIGATE),
         disabled,
         options: addons.map((addon, index) => ({
             "label": `${index + 1}. ${addon.name}`,
@@ -166,28 +170,37 @@ export function createNavigation(addons: BdWebAddon[], selectedIndex = 0, disabl
 }
 
 
-export async function paginateAddonPages(interaction: ChatInputCommandInteraction, addons: BdWebAddon[]) {
-    const navigation = createNavigation(addons);
-    const pages = addons.map(addon => createAddonComponent(addon));
+/**
+ * An addon browser: a select menu that swaps which addon is shown.
+ *
+ * Built on runSession, so the ownership check, the timeout and disabling the
+ * menu when it expires are the framework's job rather than this file's.
+ */
+export async function paginateAddonPages(interaction: RepliableInteraction, addons: BdWebAddon[], emptyMessage = "No addons matched.") {
+    // A select menu needs between 1 and 25 options; Discord rejects an empty
+    // one, so an empty result set has to be answered rather than rendered.
+    if (!addons.length) {
+        await interaction.editReply(notices.info(emptyMessage));
+        return;
+    }
 
-    const msg = await interaction.fetchReply();
-    const collector = msg.createMessageComponentCollector({time: 5 * msInMinute});
+    await runSession<number>({
+        interaction,
+        initial: 0,
+        timeout: 5 * msInMinute,
 
-    let selectedIndex = 0;
-    collector.on("collect", async (i: StringSelectMenuInteraction) => {
-        if (i.user.id !== interaction.user.id) return await i.reply({content: "You cannot interact with this menu.", flags: MessageFlags.Ephemeral});
+        render: (selectedIndex, {ended}) => ({
+            flags: MessageFlags.IsComponentsV2,
+            components: [createNavigation(addons, selectedIndex, ended), createAddonComponent(addons[selectedIndex])]
+        }),
 
-        const selectedAddonName = i.values[0];
-        const selectedAddon = addons.find(a => a.name === selectedAddonName)!;
-        selectedIndex = addons.indexOf(selectedAddon);
-        const newPage = pages[selectedIndex];
-        const newNavigation = createNavigation(addons, selectedIndex);
-        await i.update({components: [newNavigation, newPage], flags: MessageFlags.IsComponentsV2});
+        reduce(action, _selectedIndex, component) {
+            if (action !== NAVIGATE || !component.isStringSelectMenu()) return undefined;
+
+            // An unrecognised value leaves the state alone instead of throwing;
+            // the previous version asserted the lookup could not fail.
+            const next = addons.findIndex(addon => addon.name === component.values[0]);
+            return next === -1 ? undefined : next;
+        }
     });
-
-    collector.on("end", async () => {
-        await interaction.editReply({components: [createNavigation(addons, selectedIndex, true), pages[selectedIndex]], flags: MessageFlags.IsComponentsV2});
-    });
-
-    await interaction.editReply({components: [navigation, pages[0]], flags: MessageFlags.IsComponentsV2});
 }

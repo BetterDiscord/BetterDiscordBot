@@ -3,7 +3,7 @@ import {
     AutocompleteInteraction, ChatInputCommandInteraction, ComponentType, InteractionContextType,
     MessageFlags, type RESTPostAPIChatInputApplicationCommandsJSONBody
 } from "discord.js";
-import {defineCommand} from "../framework";
+import {awaitModal, defineCommand} from "../framework";
 import type {AtLeast, Tag} from "../types";
 import {tagsDB} from "../db";
 import {msInMinute} from "../util/time";
@@ -108,28 +108,21 @@ async function list(interaction: ChatInputCommandInteraction<"cached">) {
 async function showTagModal(interaction: ChatInputCommandInteraction<"cached">, tag: AtLeast<Tag, "name">) {
     const isUpdating = !!tag.content;
 
-    await interaction.showModal(updateTagModal(tag));
+    // awaitModal returns null only on timeout, so a database failure below is no
+    // longer reported to the user as "submission timed out".
+    const submitted = await awaitModal(interaction, updateTagModal(tag), ["title", "content", "thumbnail"], {time: msInMinute * 5});
+    if (!submitted) return await interaction.followUp(error("Modal submission timed out!"));
 
-    try {
-        const modalInteraction = await interaction.awaitModalSubmit({time: msInMinute * 5});
-        const title = modalInteraction.fields.getTextInputValue("title");
-        const content = modalInteraction.fields.getTextInputValue("content");
-        const thumbnailUrl = modalInteraction.fields.getTextInputValue("thumbnail");
+    const guildTags = await tagsDB.get(interaction.guildId) ?? {};
+    guildTags[tag.name] = {
+        name: tag.name,
+        title: submitted.values.title || undefined,
+        content: submitted.values.content,
+        thumbnailUrl: submitted.values.thumbnail || undefined
+    };
+    await tagsDB.set(interaction.guildId, guildTags);
 
-        const guildTags = await tagsDB.get(interaction.guildId) ?? {};
-        guildTags[tag.name] = {
-            name: tag.name,
-            title: title || undefined,
-            content,
-            thumbnailUrl: thumbnailUrl || undefined,
-        };
-        await tagsDB.set(interaction.guildId, guildTags);
-
-        await modalInteraction.reply(success(`Tag \`${tag.name}\` has been ${isUpdating ? "updated" : "created"} successfully!`));
-    }
-    catch {
-        await interaction.followUp(error("Modal submission timed out!"));
-    }
+    await submitted.submission.reply(success(`Tag \`${tag.name}\` has been ${isUpdating ? "updated" : "created"} successfully!`));
 }
 
 
