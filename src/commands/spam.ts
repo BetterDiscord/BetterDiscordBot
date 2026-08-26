@@ -1,11 +1,12 @@
 import {ApplicationCommandOptionType, ApplicationCommandType, ChatInputCommandInteraction, InteractionContextType, PermissionFlagsBits} from "discord.js";
 import {defineCommand} from "../framework";
+import config from "../config";
 import * as notices from "../util/notices";
 
 
 // TODO: move detectspam from moderation to here
 async function addLink(interaction: ChatInputCommandInteraction<"cached">) {
-    const rule = await interaction.guild.autoModerationRules.fetch("1256935881168781332");
+    const rule = await interaction.guild.autoModerationRules.fetch(config.automod.spamLinkRule);
     if (!rule) return await interaction.reply(notices.error("Spam link filter rule not found! Report this to Zerebos!", {ephemeral: true}));
 
     const existing = rule.triggerMetadata?.keywordFilter ?? [];

@@ -1,5 +1,6 @@
 import {ApplicationCommandOptionType, ApplicationCommandType, ChatInputCommandInteraction, InteractionContextType, type GuildTextBasedChannel} from "discord.js";
 import {defineCommand} from "../framework";
+import config from "../config";
 import {guildDB} from "../db";
 import * as notices from "../util/notices";
 
@@ -35,8 +36,8 @@ async function add(interaction: ChatInputCommandInteraction<"cached">) {
     const targetUser = interaction.options.getUser("user", true);
     const roleName = interaction.options.getString("role", true);
 
-    const bdRoleId = roleName.toLowerCase().includes("plugin") ? "125166040689803264" : "165005972970930176";
-    const bdGuild = await interaction.client.guilds.fetch("86004744966914048");
+    const bdRoleId = roleName.toLowerCase().includes("plugin") ? config.roles.pluginDeveloper : config.roles.themeDeveloper;
+    const bdGuild = await interaction.client.guilds.fetch(config.guilds.betterDiscord);
     try {
         const member = await bdGuild.members.fetch(targetUser);
         try {
@@ -89,12 +90,12 @@ async function add(interaction: ChatInputCommandInteraction<"cached">) {
 
 async function sync(interaction: ChatInputCommandInteraction<"cached">) {
     const targetUser = interaction.options.getUser("user", true);
-    const bdGuild = await interaction.client.guilds.fetch("86004744966914048");
+    const bdGuild = await interaction.client.guilds.fetch(config.guilds.betterDiscord);
     const bdMember = await bdGuild.members.fetch(targetUser);
     if (!bdMember) return await interaction.reply(notices.error("User is not in BetterDiscord server!", {ephemeral: true}));
-    const isPluginDev = bdMember.roles.cache.has("125166040689803264");
-    const isThemeDev = bdMember.roles.cache.has("165005972970930176");
-    const rolesToAdd = [isPluginDev ? "948627723830591568" : "", isThemeDev ? "948627648706392104" : ""].filter(r => r);
+    const isPluginDev = bdMember.roles.cache.has(config.roles.pluginDeveloper);
+    const isThemeDev = bdMember.roles.cache.has(config.roles.themeDeveloper);
+    const rolesToAdd = [isPluginDev ? config.roles.communityPluginDeveloper : "", isThemeDev ? config.roles.communityThemeDeveloper : ""].filter(r => r);
 
     const communityMember = await interaction.guild.members.fetch(targetUser);
 

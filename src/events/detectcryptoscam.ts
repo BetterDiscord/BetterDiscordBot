@@ -1,11 +1,10 @@
 import {Events, Message, PermissionFlagsBits} from "discord.js";
+import config from "../config";
 import {guildDB} from "../db";
 import {sendModLog} from "../util/modlog";
 
 
 const TIMEOUT_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
-const TARGET_GUILD_ID = "86004744966914048";
-const ACCOUNT_ISSUES_CHANNEL_ID = "1465301762821853204";
 const sketchyImageRegex = /https:\/\/(?:cdn|media)\.(?:discord|discordapp)\.(?:com|net)\/attachments\/\d+\/\d+\/(?:[1234]|image)\.(?:jpg|png|webp)(?:\?.*?)?(?:\s+|$)/;
 
 // TODO: consider de-duping with invitefilter event
@@ -16,7 +15,7 @@ export default {
         // Ignore DM messages and owner messages and people with manage messages perms
         if (!message.inGuild() || message.author.id === process.env.BOT_OWNER_ID) return;
         if (message.author.id === message.client.user.id) return;
-        if (message.guild.id !== TARGET_GUILD_ID) return;
+        if (message.guild.id !== config.guilds.betterDiscord) return;
         if (message.channel.permissionsFor(message.author)?.has(PermissionFlagsBits.ManageMessages)) return;
 
         // Obviously if this is disabled we don't need to do this stuff either
@@ -48,7 +47,7 @@ export default {
             console.error("Could not timeout member. Likely permissions.");
         }
 
-        const accountIssuesChannel = message.guild.channels.cache.get(ACCOUNT_ISSUES_CHANNEL_ID);
+        const accountIssuesChannel = message.guild.channels.cache.get(config.channels.accountIssues);
         if (accountIssuesChannel && accountIssuesChannel.isTextBased()) {
             await accountIssuesChannel.send({content: `${message.author.toString()} (${message.author.id}) your account may be compromised! Change your password and remove any unfamiliar account connections and authorized apps.`});
         }
