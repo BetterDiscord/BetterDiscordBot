@@ -5,9 +5,6 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
-    // "jsx": "preserve",
-    "jsx": "react-jsx",
-    "jsxImportSource": "@djsx",
     "allowJs": false,
 
     // Bundler mode
@@ -35,16 +32,12 @@
     "paths": {
         "@": ["./src/index.ts"],
         "@/*": ["./src/*"],
-        "@djsx": ["./djsx/index.ts"],
-        "@djsx/*": ["./djsx/*"],
     }
   },
   "include": [
     "src/**/*",
     "scripts/*",
     "tests/**/*",
-    "djsx/**/*",
-    "djsx/*",
     // "debug/test.tsx",
     // "debug/test2.tsx"
   ],
