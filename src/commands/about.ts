@@ -1,6 +1,7 @@
 import childProcess from "child_process";
 import {promisify} from "util";
-import {SlashCommandBuilder, EmbedBuilder, ChannelType, ChatInputCommandInteraction, ApplicationIntegrationType, InteractionContextType} from "discord.js";
+import {ApplicationCommandType, ApplicationIntegrationType, ChannelType, EmbedBuilder, InteractionContextType} from "discord.js";
+import {defineCommand} from "../framework";
 import type {CommandStats} from "../types";
 import {statsDB} from "../db";
 import {humanReadableUptime} from "../util/time";
@@ -8,12 +9,14 @@ import {humanReadableUptime} from "../util/time";
 
 const exec = promisify(childProcess.exec);
 
-export default {
-    data: new SlashCommandBuilder()
-        .setName("about")
-        .setDescription("Gives some information about the bot")
-        .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
-        .setContexts(InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel),
+export const command = defineCommand({
+    data: {
+        type: ApplicationCommandType.ChatInput,
+        name: "about",
+        description: "Gives some information about the bot",
+        integration_types: [ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall],
+        contexts: [InteractionContextType.Guild, InteractionContextType.BotDM, InteractionContextType.PrivateChannel]
+    },
 
     /**
      * The one place that still uses an embed rather than a Components V2
@@ -21,7 +24,7 @@ export default {
      * V2 has no field grid and faking one with padded text does not survive
      * different client widths. Everything else in the bot sends V2.
      */
-    async execute(interaction: ChatInputCommandInteraction) {
+    async execute(interaction) {
         await interaction.deferReply();
         const aboutEmbed = new EmbedBuilder();
 
@@ -115,4 +118,4 @@ export default {
         // with their OAuth URL constants; restore them from there if wanted.
         await interaction.editReply({embeds: [aboutEmbed]});
     },
-};
+});

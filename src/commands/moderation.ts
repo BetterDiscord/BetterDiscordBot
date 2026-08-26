@@ -1,108 +1,76 @@
-import {ChannelType, ChatInputCommandInteraction, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder} from "discord.js";
+import {ApplicationCommandOptionType, ApplicationCommandType, ChannelType, ChatInputCommandInteraction, InteractionContextType, PermissionFlagsBits} from "discord.js";
+import {defineCommand} from "../framework";
 import {guildDB} from "../db";
 import * as notices from "../util/notices";
 
 
-
-export default {
-    data: new SlashCommandBuilder()
-        .setName("moderation")
-        .setDescription("Commands for moderating the server.")
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
-        .setContexts(InteractionContextType.Guild)
-        .addSubcommand(
-            c => c.setName("invitefilter").setDescription("Toggles the invite filter module.")
-                .addBooleanOption(opt =>
-                    opt.setName("enable").setDescription("Enable or disable").setRequired(false)
-                )
-        )
-        .addSubcommand(
-            c => c.setName("detectspam").setDescription("Toggles the spam detection module.")
-                .addBooleanOption(opt =>
-                    opt.setName("enable").setDescription("Enable or disable").setRequired(false)
-                )
-        )
-        .addSubcommand(
-            c => c.setName("modlog").setDescription("Sets a channel to log bot moderation actions.")
-                .addChannelOption(opt =>
-                    opt.setName("channel").setDescription("Where to log my actions?").setRequired(false)
-                        .addChannelTypes(ChannelType.GuildText)
-                )
-        )
-        .addSubcommand(
-            c => c.setName("joinleave").setDescription("Sets a channel to log join/leave messages.")
-                .addChannelOption(opt =>
-                    opt.setName("channel").setDescription("Where to log join/leave messages?").setRequired(false)
-                        .addChannelTypes(ChannelType.GuildText)
-                )
-        ),
-
-    async execute(interaction: ChatInputCommandInteraction<"cached">) {
-        const command = interaction.options.getSubcommand();
-        if (command === "invitefilter") return await this.invitefilter(interaction);
-        if (command === "detectspam") return await this.detectspam(interaction);
-        if (command === "modlog") return await this.modlog(interaction);
-        if (command === "joinleave") return await this.joinleave(interaction);
-    },
+type ModuleKey = "invitefilter" | "detectspam";
+type ChannelKey = "modlog" | "joinleave";
 
 
-    /**
-     * TODO: de-dup with detectspam
-     */
-    async invitefilter(interaction: ChatInputCommandInteraction<"cached">) {
-        const toEnable = interaction.options.getBoolean("enable");
-        const current = await guildDB.get(interaction.guild.id) ?? {};
-        if (toEnable === null) return await interaction.reply(notices.info(`This module is currently ${current.invitefilter ? "enabled" : "disabled"}.`, {ephemeral: true}));
+/** Shared by invitefilter and detectspam, which were byte-identical apart from the key. */
+async function toggleModule(interaction: ChatInputCommandInteraction<"cached">, key: ModuleKey) {
+    const toEnable = interaction.options.getBoolean("enable");
+    const current = await guildDB.get(interaction.guild.id) ?? {};
+    if (toEnable === null) return await interaction.reply(notices.info(`This module is currently ${current[key] ? "enabled" : "disabled"}.`, {ephemeral: true}));
 
-        current.invitefilter = toEnable;
-        await guildDB.set(interaction.guild.id, current);
+    current[key] = toEnable;
+    await guildDB.set(interaction.guild.id, current);
 
-        await interaction.reply(notices.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
-    },
+    await interaction.reply(notices.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
+}
 
 
-    // TODO: move this to spam.ts
-    async detectspam(interaction: ChatInputCommandInteraction<"cached">) {
-        const toEnable = interaction.options.getBoolean("enable");
-        const current = await guildDB.get(interaction.guild.id) ?? {};
-        if (toEnable === null) return await interaction.reply(notices.info(`This module is currently ${current.detectspam ? "enabled" : "disabled"}.`, {ephemeral: true}));
+/** Shared by modlog and joinleave, likewise. */
+async function setChannel(interaction: ChatInputCommandInteraction<"cached">, key: ChannelKey, label: string) {
+    const targetChannel = interaction.options.getChannel("channel");
+    const current = await guildDB.get(interaction.guild.id) ?? {};
 
-        current.detectspam = toEnable;
-        await guildDB.set(interaction.guild.id, current);
+    if (targetChannel) current[key] = targetChannel.id;
+    else delete current[key];
+    await guildDB.set(interaction.guild.id, current);
 
-        await interaction.reply(notices.success(`This module has been ${toEnable ? "enabled" : "disabled"}.`, {ephemeral: true}));
-    },
-
-
-    /**
-     * TODO: de-dup with joinleave
-     */
-    async modlog(interaction: ChatInputCommandInteraction<"cached">) {
-        const targetChannel = interaction.options.getChannel("channel");
-        const current = await guildDB.get(interaction.guild.id) ?? {};
-        if (targetChannel) {
-            current.modlog = targetChannel.id;
-            await guildDB.set(interaction.guild.id, current);
-        }
-        else {
-            delete current.modlog;
-            await guildDB.set(interaction.guild.id, current);
-        }
-        await interaction.reply(notices.success(targetChannel ? `Modlog set to <#${targetChannel.id}>!` : "Modlog has been unset!", {ephemeral: true}));
-    },
+    await interaction.reply(notices.success(targetChannel ? `${label} set to <#${targetChannel.id}>!` : `${label} has been unset!`, {ephemeral: true}));
+}
 
 
-    async joinleave(interaction: ChatInputCommandInteraction<"cached">) {
-        const targetChannel = interaction.options.getChannel("channel");
-        const current = await guildDB.get(interaction.guild.id) ?? {};
-        if (targetChannel) {
-            current.joinleave = targetChannel.id;
-            await guildDB.set(interaction.guild.id, current);
-        }
-        else {
-            delete current.joinleave;
-            await guildDB.set(interaction.guild.id, current);
-        }
-        await interaction.reply(notices.success(targetChannel ? `Join/leave set to <#${targetChannel.id}>!` : "Join/leave has been unset!", {ephemeral: true}));
-    },
+const toggleOption = {
+    type: ApplicationCommandOptionType.Boolean as const,
+    name: "enable",
+    description: "Enable or disable",
+    required: false
 };
+
+const channelOption = (description: string) => ({
+    type: ApplicationCommandOptionType.Channel as const,
+    name: "channel",
+    description,
+    required: false,
+    channel_types: [ChannelType.GuildText as const]
+});
+
+
+export const command = defineCommand({
+    guildOnly: true,
+    data: {
+        type: ApplicationCommandType.ChatInput,
+        name: "moderation",
+        description: "Commands for moderating the server.",
+        default_member_permissions: PermissionFlagsBits.ManageGuild.toString(),
+        contexts: [InteractionContextType.Guild],
+        options: [
+            {type: ApplicationCommandOptionType.Subcommand, name: "invitefilter", description: "Toggles the invite filter module.", options: [toggleOption]},
+            {type: ApplicationCommandOptionType.Subcommand, name: "detectspam", description: "Toggles the spam detection module.", options: [toggleOption]},
+            {type: ApplicationCommandOptionType.Subcommand, name: "modlog", description: "Sets a channel to log bot moderation actions.", options: [channelOption("Where to log my actions?")]},
+            {type: ApplicationCommandOptionType.Subcommand, name: "joinleave", description: "Sets a channel to log join/leave messages.", options: [channelOption("Where to log join/leave messages?")]}
+        ]
+    },
+
+    async execute(interaction) {
+        const subcommand = interaction.options.getSubcommand();
+        if (subcommand === "invitefilter") return await toggleModule(interaction, "invitefilter");
+        if (subcommand === "detectspam") return await toggleModule(interaction, "detectspam");
+        if (subcommand === "modlog") return await setChannel(interaction, "modlog", "Modlog");
+        if (subcommand === "joinleave") return await setChannel(interaction, "joinleave", "Join/leave");
+    }
+});
