@@ -1,116 +1,68 @@
-import {ActionRowBuilder, ButtonBuilder, ButtonStyle, CommandInteraction, ButtonInteraction, type JSONEncodable, type APIMessageTopLevelComponent, MessageFlags} from "discord.js";
-import {msInMinute} from "./util/time";
+/**
+ * Button pagination, built on `runSession`.
+ *
+ * The ownership check, the timeout and disabling the controls when the collector
+ * ends are no longer this file's concern — they happen once, in
+ * `src/framework/session.ts`, which is why the previous version's two bugs
+ * (capturing the button interaction before the user check, and dropping
+ * `IsComponentsV2` on the final edit) are no longer expressible here.
+ */
+
+import {
+    ButtonStyle, ComponentType, MessageFlags,
+    type InteractionEditReplyOptions, type MessageActionRowComponentData, type RepliableInteraction
+} from "discord.js";
+import {row, runSession, sessionId} from "./framework";
 
 
-interface PaginatorOptions<T> {
-    interaction: CommandInteraction;
+type PageComponent = NonNullable<InteractionEditReplyOptions["components"]>[number];
+
+export interface PaginateOptions<T> {
+    interaction: RepliableInteraction;
     items: T[];
-    renderPage: (items: T[], page?: number, totalPages?: number) => JSONEncodable<APIMessageTopLevelComponent> | Array<JSONEncodable<APIMessageTopLevelComponent>>;
-    itemsPerPage?: number;
+    /** Top-level components for one page. Controls are appended automatically. */
+    renderPage: (items: T[], page: number, pages: number) => readonly PageComponent[];
+    perPage?: number;
     timeout?: number;
+    audience?: "invoker" | "anyone";
 }
 
-export default class Paginator<T = unknown> {
-    private interaction: CommandInteraction;
-    private entries: T[];
-    private itemsPerPage: number;
-    private timeout: number;
-    private renderPage: PaginatorOptions<T>["renderPage"];
-    private pages: Array<JSONEncodable<APIMessageTopLevelComponent> | Array<JSONEncodable<APIMessageTopLevelComponent>>> = [];
 
-    private numPages: number;
-    private currentPage: number = 1;
-    private buttonInteraction?: ButtonInteraction;
+export async function paginate<T>(options: PaginateOptions<T>): Promise<void> {
+    const {interaction, items, renderPage, perPage = 10, timeout, audience} = options;
+    const pages = Math.max(1, Math.ceil(items.length / perPage));
 
-    constructor(options: PaginatorOptions<T>) {
-        this.interaction = options.interaction;
-        this.entries = options.items;
-        this.itemsPerPage = options.itemsPerPage || 10;
-        this.timeout = options.timeout || msInMinute * 2;
-        this.renderPage = options.renderPage;
-        this.numPages = Math.floor(this.entries.length / this.itemsPerPage);
-        if (this.entries.length % this.itemsPerPage) this.numPages = this.numPages + 1;
+    const controls = (page: number, ended: boolean): MessageActionRowComponentData[] => [
+        {type: ComponentType.Button, customId: sessionId("first"), label: "<< First", style: ButtonStyle.Secondary, disabled: ended || page === 1},
+        {type: ComponentType.Button, customId: sessionId("previous"), label: "< Previous", style: ButtonStyle.Primary, disabled: ended || page === 1},
+        {type: ComponentType.Button, customId: sessionId("info"), label: `Page ${page} of ${pages}`, style: ButtonStyle.Secondary, disabled: true},
+        {type: ComponentType.Button, customId: sessionId("next"), label: "Next >", style: ButtonStyle.Primary, disabled: ended || page === pages},
+        {type: ComponentType.Button, customId: sessionId("last"), label: "Last >>", style: ButtonStyle.Secondary, disabled: ended || page === pages}
+    ];
 
-        for (let i = 1; i <= this.numPages; i++) {
-            const pageEntries = this.getEntriesForPage(i);
-            this.pages.push(this.renderPage(pageEntries, i, this.numPages));
+    await runSession<number>({
+        interaction,
+        initial: 1,
+        timeout,
+        audience,
+
+        render: (page, {ended}) => ({
+            // Set on every render, including the final one.
+            flags: MessageFlags.IsComponentsV2,
+            components: [
+                ...renderPage(items.slice((page - 1) * perPage, page * perPage), page, pages),
+                row(...controls(page, ended))
+            ]
+        }),
+
+        reduce(action, page) {
+            switch (action) {
+                case "first": return 1;
+                case "previous": return Math.max(1, page - 1);
+                case "next": return Math.min(pages, page + 1);
+                case "last": return pages;
+                default: return undefined;
+            }
         }
-    }
-
-    get buttons() {
-        return new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId("first")
-                    .setLabel("<< First")
-                    .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(this.currentPage === 1),
-                new ButtonBuilder()
-                    .setCustomId("previous")
-                    .setLabel("< Previous")
-                    .setStyle(ButtonStyle.Primary)
-                    .setDisabled(this.currentPage === 1),
-                new ButtonBuilder()
-                    .setCustomId("page-info")
-                    .setLabel(`Page ${this.currentPage} of ${this.numPages}`)
-                    .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId("next")
-                    .setLabel("Next >")
-                    .setStyle(ButtonStyle.Primary)
-                    .setDisabled(this.currentPage === this.numPages),
-                new ButtonBuilder()
-                    .setCustomId("last")
-                    .setLabel("Last >>")
-                    .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(this.currentPage === this.numPages),
-            );
-    }
-
-    getEntriesForPage(page: number): T[] {
-        const base = (page - 1) * this.itemsPerPage;
-        return this.entries.slice(base, base + this.itemsPerPage);
-    }
-
-    async firstPage() {await this.showPage(1);}
-    async lastPage() {await this.showPage(this.numPages);}
-    async nextPage() {await this.validatedShowPage(this.currentPage + 1);}
-    async previousPage() {await this.validatedShowPage(this.currentPage - 1);}
-    async validatedShowPage(page: number) {
-        if (page > 0 && page <= this.numPages) await this.showPage(page);
-    }
-
-    async showPage(page: number) {
-        this.currentPage = page;
-
-        const renderedPage = this.pages[this.currentPage - 1];
-        const componentList = Array.isArray(renderedPage) ? renderedPage : [renderedPage];
-
-        if (this.buttonInteraction) return await this.buttonInteraction.update({components: [...componentList, this.buttons], flags: MessageFlags.IsComponentsV2});
-        await this.interaction.editReply({components: [...componentList, this.buttons], flags: MessageFlags.IsComponentsV2});
-    }
-
-    async paginate() {
-        await this.showPage(1);
-
-        const msg = await this.interaction.fetchReply();
-        const collector = msg.createMessageComponentCollector({time: this.timeout});
-
-        collector.on("collect", async i => {
-            this.buttonInteraction = i as ButtonInteraction;
-            if (i.user.id !== this.interaction.user.id) return await i.reply({content: "You cannot interact with this menu.", flags: MessageFlags.Ephemeral});
-            if (i.customId === "first") await this.firstPage();
-            if (i.customId === "last") await this.lastPage();
-            if (i.customId === "previous") await this.previousPage();
-            if (i.customId === "next") await this.nextPage();
-            if (i.customId === "page-info") await i.reply({content: `You are on page ${this.currentPage} of ${this.numPages}.`, flags: MessageFlags.Ephemeral});
-        });
-
-        collector.on("end", async () => {
-            const renderedPage = this.pages[this.currentPage - 1];
-            const componentList = Array.isArray(renderedPage) ? renderedPage : [renderedPage];
-            await this.interaction.editReply({components: componentList});
-        });
-    }
+    });
 }

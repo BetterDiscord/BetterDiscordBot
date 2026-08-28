@@ -1,6 +1,6 @@
 import {Events, type GuildMember} from "discord.js";
 import {guildDB} from "../db";
-import Messages from "../util/messages";
+import * as notices from "../util/notices";
 
 
 
@@ -14,7 +14,7 @@ export default [
             if (!guildSettings || !guildSettings.joinleave) return;
             const channel = member.guild.channels.cache.get(guildSettings.joinleave);
             if (!channel || !channel.isTextBased()) return;
-            await channel.send(Messages.success(`<@!${member.user.id}> has joined the server!`));
+            await channel.send(notices.success(`<@!${member.user.id}> has joined the server!`));
         },
     },
     {
@@ -25,7 +25,7 @@ export default [
             if (!guildSettings || !guildSettings.joinleave) return;
             const channel = member.guild.channels.cache.get(guildSettings.joinleave);
             if (!channel || !channel.isTextBased()) return;
-            await channel.send(Messages.error(`**${member.user.tag} (${member.user.id})** has left the server!`));
+            await channel.send(notices.error(`**${member.user.tag} (${member.user.id})** has left the server!`));
         },
     }
 ];
