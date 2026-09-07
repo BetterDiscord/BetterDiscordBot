@@ -289,7 +289,7 @@
           "type": 1
         },
         {
-          "description": "Syncs roles between severs.",
+          "description": "Syncs roles between servers.",
           "name": "sync",
           "options": [
             {
@@ -532,7 +532,7 @@
           "type": 1
         },
         {
-          "description": "Unbinds a voice channel from it's partner.",
+          "description": "Unbinds a voice channel from its partner.",
           "name": "unbind",
           "options": [
             {

@@ -75,7 +75,7 @@ export const command = defineCommand({
         contexts: [InteractionContextType.Guild],
         options: [
             {type: ApplicationCommandOptionType.Subcommand, name: "status", description: "Checks the bound status of a voice channel.", options: [voiceOption("Which voice channel to check?")]},
-            {type: ApplicationCommandOptionType.Subcommand, name: "unbind", description: "Unbinds a voice channel from it's partner.", options: [voiceOption("Which voice channel to unbind?")]},
+            {type: ApplicationCommandOptionType.Subcommand, name: "unbind", description: "Unbinds a voice channel from its partner.", options: [voiceOption("Which voice channel to unbind?")]},
             {
                 type: ApplicationCommandOptionType.Subcommand,
                 name: "bind",

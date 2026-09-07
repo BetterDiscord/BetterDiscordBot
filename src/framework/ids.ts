@@ -34,7 +34,12 @@ export const Num: ParamCodec<number> = {
 };
 
 export const Bool: ParamCodec<boolean> = {
-    parse: raw => raw === "1",
+    parse(raw) {
+        // Anything else is a stale or tampered id, and must fail like the other
+        // codecs rather than quietly decoding to false.
+        if (raw !== "0" && raw !== "1") throw new IdError(`expected a boolean, got ${JSON.stringify(raw)}`);
+        return raw === "1";
+    },
     format: value => value ? "1" : "0"
 };
 

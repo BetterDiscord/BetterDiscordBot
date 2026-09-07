@@ -146,7 +146,7 @@ export const command = defineCommand({
             {
                 type: ApplicationCommandOptionType.Subcommand,
                 name: "sync",
-                description: "Syncs roles between severs.",
+                description: "Syncs roles between servers.",
                 options: [userOption("Which developer to resync?")]
             },
             {

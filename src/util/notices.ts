@@ -4,9 +4,9 @@
  * These replace the `<Success>` / `<Error>` / `<Info>` / `<Warn>` JSX widgets
  * from djsx and produce the same payload.
  *
- * NOTE: this is one of two message layers in the codebase right now. The other
- * is the embed-based `Messages` class in `./messages.ts`, which the unmigrated
- * commands still use. Collapsing them onto this one is the next pass.
+ * This is how the bot sends a short status message. The one deliberate
+ * exception is `/about`, which keeps an embed because its stats are inline
+ * fields three to a row and Components V2 has no field grid.
  */
 
 import {

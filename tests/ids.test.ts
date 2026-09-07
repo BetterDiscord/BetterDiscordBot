@@ -51,6 +51,15 @@ describe("codec validation", () => {
         expect(() => decodeId(spec, "ns:a:b:c")).toThrow(IdError);
     });
 
+    // Every codec must fail loudly on a malformed value; Bool used to decode
+    // anything that was not "1" as false, so a tampered or stale id could slip
+    // through instead of taking the "out of date" path.
+    test("Bool rejects anything that is not 0 or 1", () => {
+        expect(Bool.parse("1")).toBe(true);
+        expect(Bool.parse("0")).toBe(false);
+        for (const bad of ["", "true", "banana", "2"]) expect(() => Bool.parse(bad)).toThrow(IdError);
+    });
+
     test("oneOf rejects a value outside the set", () => {
         const mode = oneOf("user", "admin");
         expect(mode.parse("admin")).toBe("admin");
