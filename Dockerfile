@@ -20,5 +20,6 @@ COPY --link . /app
 # Setup some default files
 RUN touch settings.sqlite3
 
-# Refresh commands when starting the bot
+# Validate config, then deploy commands only if they changed since the last
+# start (see scripts/deploy-commands.ts), then run the bot
 CMD ["sh", "-c", "bun run validate && bun run deploy && bun run start"]

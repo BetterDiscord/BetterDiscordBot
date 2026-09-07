@@ -5,19 +5,23 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "bun run --tsconfig-override tsconfig.bun.json --bun src/index.ts",
-    "deploy": "bun run --tsconfig-override tsconfig.bun.json --bun scripts/deploy-commands.ts",
-    "clear": "bun run --tsconfig-override tsconfig.bun.json --bun scripts/deploy-commands.ts --clear",
-    "validate": "bun run --tsconfig-override tsconfig.bun.json --bun scripts/validate-env.ts"
+    "test": "bun test",
+    "start": "bun run --bun src/index.ts",
+    "deploy": "bun run --bun scripts/deploy-commands.ts",
+    "clear": "bun run --bun scripts/deploy-commands.ts --clear",
+    "validate": "bun run --bun scripts/validate-env.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "author": "Zerebos",
   "license": "MIT",
   "devDependencies": {
+    "@types/bun": "^1.4.0",
     "@types/string-similarity": "^4.0.2",
-    "@zerebos/eslint-config": "file:../../eslint-configs/packages/base",
-    "@zerebos/eslint-config-typescript": "file:../../eslint-configs/packages/typescript",
+    "@zerebos/eslint-config": "^1.0.3",
+    "@zerebos/eslint-config-typescript": "^1.1.1",
     "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1"
   },
   "dependencies": {
@@ -34,7 +38,6 @@
   "overrides": {
     "sqlite3": {
       "prebuild-install": "7.1.3"
-    },
-    "react": "./djsx/index.ts"
+    }
   }
 }
