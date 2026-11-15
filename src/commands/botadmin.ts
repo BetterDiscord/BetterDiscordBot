@@ -1,111 +1,128 @@
-import {ActionRowBuilder, ChannelType, ChatInputCommandInteraction, ModalBuilder, SlashCommandBuilder, TextChannel, TextInputBuilder, TextInputStyle, type PartialTextBasedChannelFields} from "discord.js";
-import Messages from "../util/messages";
+import {
+    ApplicationCommandOptionType, ApplicationCommandType, ChannelType, ChatInputCommandInteraction,
+    ComponentType, TextInputStyle,
+    type ModalComponentData, type PartialTextBasedChannelFields
+} from "discord.js";
+import {awaitModal, defineCommand} from "../framework";
 import {globalDB} from "../db";
+import * as notices from "../util/notices";
 
 
-
-export default {
-    owner: true,
-    data: new SlashCommandBuilder()
-        .setName("botadmin")
-        .setDescription("Global settings for the bot during runtime.")
-        .addSubcommandGroup(group =>
-            group.setName("send").setDescription("Sends messages to different locations")
-                .addSubcommand(c =>
-                    c.setName("user").setDescription("Sends a DM to the specified user.")
-                        .addUserOption(opt =>
-                            opt.setName("user").setDescription("User to DM.").setRequired(true)
-                        )
-                )
-                .addSubcommand(c =>
-                    c.setName("channel").setDescription("Sends a message to the specified channel.")
-                        .addChannelOption(opt =>
-                            opt.setName("channel").setDescription("Channel to send a message.").setRequired(true)
-                                .addChannelTypes(ChannelType.GuildText)
-                        )
-                )
-        )
-        .addSubcommand(
-            c => c.setName("forwarding").setDescription("Sets up DM forwarding to a user.")
-                .addUserOption(opt =>
-                    opt.setName("user").setDescription("Who to forward DMs to?").setRequired(false)
-                )
-        )
-        .addSubcommand(c => c.setName("quit").setDescription("Exits the bot gracefully.")),
-
-
-    async execute(interaction: ChatInputCommandInteraction) {
-        if (interaction.user.id !== process.env.BOT_OWNER_ID) return await interaction.reply(Messages.error("Sorry this command is only usable by the owner!", {ephemeral: true}));
-
-        const group = interaction.options.getSubcommandGroup();
-        const command = interaction.options.getSubcommand();
-        if (group === "send") {
-            if (command === "channel") return await this.channel(interaction);
-            if (command === "user") return await this.user(interaction);
+const sendModal: ModalComponentData = {
+    customId: "botadmin-send",
+    title: "Message To Send",
+    components: [{
+        type: ComponentType.Label,
+        label: "Message",
+        component: {
+            type: ComponentType.TextInput,
+            customId: "message",
+            label: "Message",
+            style: TextInputStyle.Paragraph,
+            required: true,
+            maxLength: 2000,
+            value: ""
         }
-        if (command === "forwarding") return await this.forwarding(interaction);
-        if (command === "quit") return await this.quit(interaction);
-    },
-
-
-    async channel(interaction: ChatInputCommandInteraction) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        return await this.send(interaction, interaction.options.getChannel("channel", true) as TextChannel);
-    },
-
-
-    async user(interaction: ChatInputCommandInteraction) {
-        return await this.send(interaction, interaction.options.getUser("user", true));
-    },
-
-
-    async send(interaction: ChatInputCommandInteraction, target: PartialTextBasedChannelFields) {
-        const modal = new ModalBuilder().setTitle("Message To Send").setCustomId("botadmin-send")
-            .addComponents(
-                new ActionRowBuilder<TextInputBuilder>()
-                    .addComponents(
-                        new TextInputBuilder().setCustomId("message").setLabel("Message")
-                            .setStyle(TextInputStyle.Paragraph).setRequired(true)
-                            .setMaxLength(2000).setValue("")
-                    )
-            );
-
-
-        await interaction.showModal(modal);
-
-        try {
-            const modalInteraction = await interaction.awaitModalSubmit({time: 60_000});
-            const message = modalInteraction.fields.getTextInputValue("message");
-            try {
-                await target.send(message);
-                await modalInteraction.reply(Messages.success("Message sent successfully!", {ephemeral: true}));
-            }
-            catch {
-                await modalInteraction.reply(Messages.error("Could not send message!", {ephemeral: true}));
-            }
-        }
-        catch {
-            await interaction.followUp(Messages.error("Modal submission timed out!", {ephemeral: true}));
-        }
-    },
-
-    /**
-     * This is just here to satisfy the event requirement I imposed on myself
-     */
-    async modal() {},
-
-
-    async forwarding(interaction: ChatInputCommandInteraction) {
-        const targetUser = interaction.options.getUser("user");
-        if (targetUser) await globalDB.set("forwarding", targetUser.id);
-        else await globalDB.delete("forwarding");
-        await interaction.reply(Messages.success(targetUser ? `Now forwarding DMs to <@${targetUser.id}>!` : "No longer forwarding DMs!", {ephemeral: true}));
-    },
-
-
-    async quit(interaction: ChatInputCommandInteraction) {
-        await interaction.reply(Messages.info("Bot shutting down...", {ephemeral: true}));
-        await interaction.client.destroy();
-        process.exit(0);
-    },
+    }]
 };
+
+
+async function send(interaction: ChatInputCommandInteraction, target: PartialTextBasedChannelFields) {
+    const submission = await awaitModal(interaction, sendModal, ["message"], {time: 60_000});
+    if (!submission) return await interaction.followUp(notices.error("Modal submission timed out!", {ephemeral: true}));
+
+    try {
+        await target.send(submission.values.message);
+        await submission.submission.reply(notices.success("Message sent successfully!", {ephemeral: true}));
+    }
+    catch {
+        await submission.submission.reply(notices.error("Could not send message!", {ephemeral: true}));
+    }
+}
+
+
+async function forwarding(interaction: ChatInputCommandInteraction) {
+    const targetUser = interaction.options.getUser("user");
+    if (targetUser) await globalDB.set("forwarding", targetUser.id);
+    else await globalDB.delete("forwarding");
+    await interaction.reply(notices.success(targetUser ? `Now forwarding DMs to <@${targetUser.id}>!` : "No longer forwarding DMs!", {ephemeral: true}));
+}
+
+
+async function quit(interaction: ChatInputCommandInteraction) {
+    await interaction.reply(notices.info("Bot shutting down...", {ephemeral: true}));
+    await interaction.client.destroy();
+    process.exit(0);
+}
+
+
+export const command = defineCommand({
+    ownerOnly: true,
+    data: {
+        type: ApplicationCommandType.ChatInput,
+        name: "botadmin",
+        description: "Global settings for the bot during runtime.",
+        options: [
+            {
+                type: ApplicationCommandOptionType.SubcommandGroup,
+                name: "send",
+                description: "Sends messages to different locations",
+                options: [
+                    {
+                        type: ApplicationCommandOptionType.Subcommand,
+                        name: "user",
+                        description: "Sends a DM to the specified user.",
+                        options: [{
+                            type: ApplicationCommandOptionType.User,
+                            name: "user",
+                            description: "User to DM.",
+                            required: true
+                        }]
+                    },
+                    {
+                        type: ApplicationCommandOptionType.Subcommand,
+                        name: "channel",
+                        description: "Sends a message to the specified channel.",
+                        options: [{
+                            type: ApplicationCommandOptionType.Channel,
+                            name: "channel",
+                            description: "Channel to send a message.",
+                            required: true,
+                            channel_types: [ChannelType.GuildText]
+                        }]
+                    }
+                ]
+            },
+            {
+                type: ApplicationCommandOptionType.Subcommand,
+                name: "forwarding",
+                description: "Sets up DM forwarding to a user.",
+                options: [{
+                    type: ApplicationCommandOptionType.User,
+                    name: "user",
+                    description: "Who to forward DMs to?",
+                    required: false
+                }]
+            },
+            {
+                type: ApplicationCommandOptionType.Subcommand,
+                name: "quit",
+                description: "Exits the bot gracefully."
+            }
+        ]
+    },
+
+    // The owner check is the dispatcher's job now; `ownerOnly` above also keeps
+    // this command deployed to the private guild rather than globally.
+    async execute(interaction) {
+        const group = interaction.options.getSubcommandGroup();
+        const subcommand = interaction.options.getSubcommand();
+
+        if (group === "send") {
+            if (subcommand === "channel") return await send(interaction, interaction.options.getChannel<ChannelType.GuildText>("channel", true));
+            if (subcommand === "user") return await send(interaction, interaction.options.getUser("user", true));
+        }
+        if (subcommand === "forwarding") return await forwarding(interaction);
+        if (subcommand === "quit") return await quit(interaction);
+    }
+});

@@ -1,96 +1,148 @@
-import {ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, EmbedBuilder, MessageComponentInteraction, PermissionFlagsBits, RoleSelectMenuBuilder, RoleSelectMenuInteraction, SlashCommandBuilder, StringSelectMenuBuilder, StringSelectMenuInteraction, StringSelectMenuOptionBuilder} from "discord.js";
+import {
+    ApplicationCommandType, ButtonStyle, ComponentType, InteractionContextType,
+    MessageFlags, PermissionFlagsBits, SelectMenuDefaultValueType,
+    type InteractionReplyOptions, type InteractionUpdateOptions, type MessageActionRowComponentData
+} from "discord.js";
+import {container, defineCommand, defineComponent, oneOf, row, text} from "../framework";
 import {selfrolesDB} from "../db";
-import Messages from "../util/messages";
-import Colors from "../util/colors";
+import * as notices from "../util/notices";
+import {Accents} from "../util/colors";
 
 
-
-export default {
-    data: new SlashCommandBuilder()
-        .setName("selfroles")
-        .setDescription("Allows users to self-assign roles.")
-        .setDMPermission(false),
+const RETURN_TO_PANEL_DELAY = 3000;
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 
-    async execute(interaction: MessageComponentInteraction<"cached">) {
-        const selfroles = await selfrolesDB.get(interaction.guild.id) ?? [];
-        const listingEmbed = new EmbedBuilder().setColor(Colors.Info).setTitle("Available Roles")
-            .setDescription(selfroles.length ? selfroles.map((r: string) => `- <@&${r}>`).join("\n") : "No roles have been configured by the admins.");
+/** The listing plus its controls. Shared by the command and every component. */
+function panel(roleIds: string[], canManage: boolean): InteractionReplyOptions & InteractionUpdateOptions {
+    const controls: MessageActionRowComponentData[] = [
+        {type: ComponentType.Button, customId: openPicker.customId({mode: "user"}), label: "Manage Your Roles", style: ButtonStyle.Success}
+    ];
+    if (canManage) {
+        controls.push({type: ComponentType.Button, customId: openPicker.customId({mode: "admin"}), label: "Set Assignable Roles", style: ButtonStyle.Primary});
+    }
 
-        const controls = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder().setCustomId("selfroles-user").setLabel("Manage Your Roles").setStyle(ButtonStyle.Success)
-        );
-        const member = interaction.guild.members.cache.get(interaction.user.id)!;
-        if (member.permissions.has(PermissionFlagsBits.ManageRoles)) {
-            controls.addComponents(
-                new ButtonBuilder().setCustomId("selfroles-admin").setLabel("Set Assignable Roles").setStyle(ButtonStyle.Primary)
-            );
+    return {
+        flags: MessageFlags.IsComponentsV2,
+        components: [container([
+            text("## Available Roles"),
+            text(roleIds.length ? roleIds.map(id => `- <@&${id}>`).join("\n") : "No roles have been configured by the admins."),
+            row(...controls)
+        ], {accentColor: Accents.Info})]
+    };
+}
+
+
+/**
+ * One definition for both buttons. `mode` is a typed param, so the switch below
+ * is exhaustive by construction and `customId({mode: "usr"})` will not compile.
+ * This replaces the old `customId.split("-")[1]` dispatch inside `button()`.
+ */
+const openPicker = defineComponent({
+    id: "selfroles.open",
+    kind: "button",
+    guildOnly: true,
+    params: {mode: oneOf("user", "admin")},
+
+    async run(interaction, {mode}) {
+        const assignable = await selfrolesDB.get(interaction.guild.id) ?? [];
+
+        if (mode === "admin") {
+            if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageRoles)) {
+                return await interaction.reply(notices.error("You need the `Manage Roles` permission to do that.", {ephemeral: true}));
+            }
+
+            return await interaction.update(notices.info("Please select which roles should be self-assignable.", {
+                components: [row({
+                    type: ComponentType.RoleSelect,
+                    customId: setAssignable.customId({}),
+                    minValues: 0,
+                    maxValues: 25,
+                    defaultValues: assignable.map(id => ({id, type: SelectMenuDefaultValueType.Role}))
+                })]
+            }));
         }
 
-        if (!interaction.replied) return await interaction.reply({embeds: [listingEmbed], components: [controls], ephemeral: true});
-        await interaction.editReply({embeds: [listingEmbed], components: [controls]});
-    },
+        // The previous version called setMaxValues(0) here, which Discord rejects,
+        // so the first press on a server with no configured roles always failed.
+        if (!assignable.length) {
+            return await interaction.reply(notices.info("No self-assignable roles have been set up yet.", {ephemeral: true}));
+        }
+
+        return await interaction.update(notices.info("Please select which roles you want.", {
+            components: [row({
+                type: ComponentType.StringSelect,
+                customId: chooseRoles.customId({}),
+                minValues: 0,
+                maxValues: assignable.length,
+                options: assignable.map(id => ({
+                    "label": interaction.guild.roles.cache.get(id)?.name ?? id,
+                    "value": id,
+                    "default": interaction.member.roles.cache.has(id)
+                }))
+            })]
+        }));
+    }
+});
 
 
-    async button(interaction: ButtonInteraction<"cached">) {
-        const id = interaction.customId.split("-")[1];
-        if (id === "user") return await this.buttonUser(interaction);
-        if (id === "admin") return await this.buttonAdmin(interaction);
-    },
+const chooseRoles = defineComponent({
+    id: "selfroles.choose",
+    kind: "stringSelect",
+    guildOnly: true,
+    params: {},
 
-
-    async buttonUser(interaction: ButtonInteraction<"cached">) {
-        const member = interaction.guild.members.cache.get(interaction.user.id)!;
+    async run(interaction) {
         const assignable = await selfrolesDB.get(interaction.guild.id) ?? [];
-        const controls = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-            new StringSelectMenuBuilder().setCustomId("selfroles")
-                .setMinValues(0)
-                .setMaxValues(assignable.length)
-                .setOptions(assignable.map(
-                    (roleId: string) => new StringSelectMenuOptionBuilder()
-                        .setLabel(interaction.guild.roles.cache.get(roleId)!.name)
-                        .setValue(roleId)
-                        .setDefault(member.roles.cache.has(roleId))
-                ))
-        );
 
-        await interaction.update(Messages.info("Please select which roles you want.", {components: [controls]}));
-    },
-
-
-    async select(interaction: StringSelectMenuInteraction<"cached">) {
-        const member = interaction.guild.members.cache.get(interaction.user.id)!;
-        const assignable = await selfrolesDB.get(interaction.guild.id) ?? [];
         try {
-            if (assignable.length) await member.roles.remove(assignable);
-            if (interaction.values.length) await member.roles.add(interaction.values);
-            await interaction.update(Messages.success("Successfully assigned your roles!", {components: []}));
+            const toRemove = assignable.filter(id => !interaction.values.includes(id));
+            if (toRemove.length) await interaction.member.roles.remove(toRemove, "Self-roles");
+            if (interaction.values.length) await interaction.member.roles.add(interaction.values, "Self-roles");
+            await interaction.update(notices.success("Successfully assigned your roles!", {components: []}));
         }
         catch {
-            await interaction.update(Messages.error("Could not assign your roles. It may be a permission issue."));
+            await interaction.update(notices.error("Could not assign your roles. It may be a permission issue.", {components: []}));
         }
 
-        // Restart the flow
-        await new Promise(r => setTimeout(r, 3000));
-        await this.execute(interaction);
+        await wait(RETURN_TO_PANEL_DELAY);
+        await interaction.editReply(panel(assignable, interaction.memberPermissions.has(PermissionFlagsBits.ManageRoles)));
+    }
+});
+
+
+const setAssignable = defineComponent({
+    id: "selfroles.set",
+    kind: "roleSelect",
+    guildOnly: true,
+    params: {},
+
+    async run(interaction) {
+        const roleIds = [...interaction.roles.keys()];
+        await selfrolesDB.set(interaction.guild.id, roleIds);
+        await interaction.update(notices.success("Self-assignable roles set successfully.", {components: []}));
+
+        await wait(RETURN_TO_PANEL_DELAY);
+        await interaction.editReply(panel(roleIds, true));
+    }
+});
+
+
+export const command = defineCommand({
+    guildOnly: true,
+    data: {
+        type: ApplicationCommandType.ChatInput,
+        name: "selfroles",
+        description: "Allows users to self-assign roles.",
+        contexts: [InteractionContextType.Guild]
     },
 
+    async execute(interaction) {
+        const assignable = await selfrolesDB.get(interaction.guild.id) ?? [];
+        const canManage = interaction.memberPermissions.has(PermissionFlagsBits.ManageRoles);
+        const message = panel(assignable, canManage);
+        return await interaction.reply({...message, flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral});
+    }
+});
 
-    async buttonAdmin(interaction: ButtonInteraction<"cached">) {
-        const defaultRoles = await selfrolesDB.get(interaction.guild.id) ?? [];
-        const controls = new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(
-            new RoleSelectMenuBuilder().setCustomId("selfroles").setMaxValues(25).setDefaultRoles(defaultRoles)
-        );
-        await interaction.update(Messages.info("Please select which roles should be self-assignable.", {components: [controls]}));
-    },
-
-
-    async role(interaction: RoleSelectMenuInteraction<"cached">) {
-        await selfrolesDB.set(interaction.guild.id, [...interaction.roles.keys()]);
-        await interaction.update(Messages.success("Self-assignable roles set successfully.", {components: []}));
-
-        // Restart the flow
-        await new Promise(r => setTimeout(r, 3000));
-        await this.execute(interaction);
-    },
-};
+export const components = [openPicker, chooseRoles, setAssignable];

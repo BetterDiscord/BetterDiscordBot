@@ -1,17 +1,18 @@
 import {Events, GuildMember} from "discord.js";
+import config from "../config";
 
 
 export default {
     name: Events.GuildMemberAdd,
 
     async execute(member: GuildMember) {
-        const bdGuild = await member.client.guilds.fetch("86004744966914048");
+        const bdGuild = await member.client.guilds.fetch(config.guilds.betterDiscord);
         const bdMember = await bdGuild.members.fetch(member);
         if (!bdMember) return;
 
-        const isPluginDev = bdMember.roles.cache.has("125166040689803264");
-        const isThemeDev = bdMember.roles.cache.has("165005972970930176");
-        const rolesToAdd = [isPluginDev ? "948627723830591568" : "", isThemeDev ? "948627648706392104" : ""].filter(r => r);
+        const isPluginDev = bdMember.roles.cache.has(config.roles.pluginDeveloper);
+        const isThemeDev = bdMember.roles.cache.has(config.roles.themeDeveloper);
+        const rolesToAdd = [isPluginDev ? config.roles.communityPluginDeveloper : "", isThemeDev ? config.roles.communityThemeDeveloper : ""].filter(r => r);
 
         try {
             await member.roles.add(rolesToAdd, "Syncing roles from main server");
