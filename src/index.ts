@@ -9,11 +9,11 @@ import {pathToFileURL} from "node:url";
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers,
+        // GatewayIntentBits.GuildMessages,
+        // GatewayIntentBits.MessageContent,
+        // GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.DirectMessages
+        // GatewayIntentBits.DirectMessages
     ],
     partials: [
         Partials.Channel
