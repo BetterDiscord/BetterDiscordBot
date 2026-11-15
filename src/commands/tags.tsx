@@ -55,27 +55,29 @@ export default {
         );
     },
 
+    // TODO: reconsider which replies in this command should be ephemeral. The errors in `create` and `update` and
+    // the modal's success message are visible to the whole channel, while everything in `delete` and `list` is not.
     async create(interaction: ChatInputCommandInteraction<"cached">) {
-        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(<Error>You do not have permission to create tags.</Error> as MessageOptions);
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.reply(<Error>You do not have permission to create tags.</Error> as MessageOptions);
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
-        if (tag) return await interaction.editReply(<Error>Tag with name `{tagName}` already exists.</Error> as MessageOptions);
+        if (tag) return await interaction.reply(<Error>Tag with name `{tagName}` already exists.</Error> as MessageOptions);
         return await this.showTagModal(interaction, {name: tagName});
     },
 
     async update(interaction: ChatInputCommandInteraction<"cached">) {
-        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(<Error>You do not have permission to update tags.</Error> as MessageOptions);
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.reply(<Error>You do not have permission to update tags.</Error> as MessageOptions);
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
-        if (!tag) return await interaction.editReply(<Error>Tag with name `{tagName}` does not exist.</Error> as MessageOptions);
+        if (!tag) return await interaction.reply(<Error>Tag with name `{tagName}` does not exist.</Error> as MessageOptions);
         return await this.showTagModal(interaction, tag);
     },
 
     async delete(interaction: ChatInputCommandInteraction<"cached">) {
-        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(<Error>You do not have permission to delete tags.</Error> as MessageOptions);
         await interaction.deferReply({flags: MessageFlags.Ephemeral});
+        if (!interaction.memberPermissions.has("ManageMessages")) return await interaction.editReply(<Error>You do not have permission to delete tags.</Error> as MessageOptions);
         const tagName = interaction.options.getString("name", true);
         const guildTags = await tagsDB.get(interaction.guildId) ?? {};
         const tag = guildTags[tagName];
@@ -127,7 +129,7 @@ export default {
             };
             await tagsDB.set(interaction.guildId, guildTags);
 
-            await modalInteraction.reply(<Success>Tag `{tag.name}` has been ${isUpdating ? "updated" : "created"} successfully!</Success> as MessageOptions);
+            await modalInteraction.reply(<Success>Tag `{tag.name}` has been {isUpdating ? "updated" : "created"} successfully!</Success> as MessageOptions);
         }
         catch {
             await interaction.followUp(<Error>Modal submission timed out!</Error> as MessageOptions);
