@@ -1,4 +1,4 @@
-FROM oven/bun:alpine as base
+FROM oven/bun:1.3.14-alpine as base
 
 # Add git for showing latest changes in about
 RUN apk add --no-cache git
