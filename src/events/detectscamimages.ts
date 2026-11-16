@@ -1,7 +1,7 @@
 import {Events, Message} from "discord.js";
 import {guildDB} from "../db";
 import type {GuildSettings} from "../types";
-import {deleteMessage, getModlogChannel, isFilterable, logMemberAction, logScamImage, timeoutAuthor, warnCompromisedAccount} from "../util/moderation";
+import {deleteMessage, getModlogChannel, isFilterable, logMemberAction, logScamImage, timeoutAuthor, warnCompromisedAccount, type RemovalOutcome} from "../util/moderation";
 import {recordScan, scanImages} from "../util/scamimages";
 
 
@@ -15,12 +15,12 @@ function hasKnownScamShape(message: Message<true>): boolean {
     return message.attachments.size === 4 && message.attachments.every(a => sketchyImageRegex.test(a.url));
 }
 
-/** Removes the message and times its author out. Returns whether the timeout was applied. */
-async function removeScam(message: Message<true>): Promise<boolean> {
-    await deleteMessage(message, "scam image");
+/** Removes the message, times its author out and warns them. Returns which of the first two worked. */
+async function removeScam(message: Message<true>): Promise<RemovalOutcome> {
+    const wasDeleted = await deleteMessage(message, "scam image");
     const didTimeout = await timeoutAuthor(message, TIMEOUT_DURATION, TIMEOUT_REASON);
     await warnCompromisedAccount(message);
-    return didTimeout;
+    return {wasDeleted, didTimeout};
 }
 
 export default {
@@ -33,7 +33,7 @@ export default {
 
         // The known shape is recognized from the file names alone, so those messages never need their images read
         if (settings.detectspam && message.guild.id === TARGET_GUILD_ID && hasKnownScamShape(message)) {
-            const didTimeout = await removeScam(message);
+            const {didTimeout} = await removeScam(message);
             if (didTimeout && modlog) await logMemberAction(modlog, message, "Member Timed Out", TIMEOUT_REASON);
             return;
         }
@@ -46,11 +46,10 @@ export default {
         if (!scan.flagged) return;
 
         // In log mode the message and its author are left alone, and the mod log is the only record
-        const isEnforced = settings.scamimages === "enforce";
-        const didTimeout = isEnforced && await removeScam(message);
+        const outcome = settings.scamimages === "enforce" ? await removeScam(message) : undefined;
 
         if (!modlog) return;
-        await logScamImage(modlog, message, scan.flagged, isEnforced);
-        if (didTimeout) await logMemberAction(modlog, message, "Member Timed Out", TIMEOUT_REASON);
+        await logScamImage(modlog, message, scan.flagged, outcome);
+        if (outcome?.didTimeout) await logMemberAction(modlog, message, "Member Timed Out", TIMEOUT_REASON);
     },
 };

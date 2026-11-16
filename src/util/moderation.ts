@@ -18,14 +18,19 @@ export function isFilterable(message: Message): message is Message<true> {
     return true;
 }
 
-/** Deletes the message. `filterName` only appears in the error that is logged when the delete fails. */
-export async function deleteMessage(message: Message<true>, filterName: string) {
+/**
+ * Deletes the message and returns whether it was deleted.
+ * `filterName` only appears in the error that is logged when the delete fails.
+ */
+export async function deleteMessage(message: Message<true>, filterName: string): Promise<boolean> {
     try {
         await message.delete();
+        return true;
     }
     catch {
         // TODO: logging?
         console.error(`Could not delete ${filterName} message. Likely permissions.`);
+        return false;
     }
 }
 
@@ -102,19 +107,31 @@ export async function logMemberAction(modlog: GuildTextBasedChannel, message: Me
     await modlog.send({embeds: [embed]});
 }
 
+/** What happened when a filter tried to remove a message and time its author out */
+export interface RemovalOutcome {
+    wasDeleted: boolean;
+    didTimeout: boolean;
+}
+
 /**
  * Logs an image that matched the crypto scam, with the image itself and the terms that were found in it.
- * `wasRemoved` says whether the message was deleted, or left alone because the guild only logs matches.
+ * `outcome` is left out when the guild only logs matches, so nothing was done to the message or its author.
  */
-export async function logScamImage(modlog: GuildTextBasedChannel, message: Message<true>, image: FlaggedImage, wasRemoved: boolean) {
+export async function logScamImage(modlog: GuildTextBasedChannel, message: Message<true>, image: FlaggedImage, outcome?: RemovalOutcome) {
+    // A failed step is spelled out, because otherwise the only sign of it is in the bot's console
+    const action = outcome
+        ? `${outcome.wasDeleted ? "Message removed" : "Message could not be removed"}, ${outcome.didTimeout ? "member timed out" : "member could not be timed out"}`
+        : "None (log only)";
+    const isMessageGone = outcome?.wasDeleted ?? false;
+
     // The log gets its own copy of the image, because the original disappears with the message
     const fileName = `flagged${path.extname(image.name) || ".png"}`;
     const embed = new EmbedBuilder().setColor(Colors.Info)
         .setAuthor({name: "Scam Image Detected", iconURL: message.author.displayAvatarURL()})
-        .setDescription(`Image sent by ${message.author.username} in <#${message.channel.name}>` + (wasRemoved ? "" : `\n\n[Jump to message](${message.url})`))
+        .setDescription(`Image sent by ${message.author.username} in <#${message.channel.id}>` + (isMessageGone ? "" : `\n\n[Jump to message](${message.url})`))
         .addFields(
             {name: "Matched Terms", value: image.terms.join(", ")},
-            {name: "Action", value: wasRemoved ? "Message removed" : "None (log only)"},
+            {name: "Action", value: action},
         )
         .setImage(`attachment://${fileName}`)
         .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);

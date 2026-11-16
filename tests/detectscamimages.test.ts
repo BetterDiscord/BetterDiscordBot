@@ -47,11 +47,13 @@ interface FakeAttachment {
 interface FakeMessageOptions {
     attachments: FakeAttachment[];
     isModerator?: boolean;
+    isDeleteRefused?: boolean;
+    isTimeoutRefused?: boolean;
 }
 
 const defaultAttachment = {contentType: "image/jpeg", size: 9_000, width: 450, height: 300};
 
-function createMessage({attachments, isModerator = false}: FakeMessageOptions) {
+function createMessage({attachments, isModerator = false, isDeleteRefused = false, isTimeoutRefused = false}: FakeMessageOptions) {
     const actions: string[] = [];
     const logged: Array<{title: string; fields: Record<string, string>; description: string; fileNames: string[];}> = [];
 
@@ -72,7 +74,11 @@ function createMessage({attachments, isModerator = false}: FakeMessageOptions) {
         isTextBased: () => true,
         send: () => Promise.resolve(void actions.push("warned in account issues")),
     };
-    const member = {timeout: (duration: number) => Promise.resolve(void actions.push(`timed out for ${duration / 60_000} minutes`))};
+    const refused = () => Promise.reject(new Error("Missing Permissions"));
+    const member = {
+        timeout: (duration: number) => isTimeoutRefused ? refused() : Promise.resolve(void actions.push(`timed out for ${duration / 60_000} minutes`)),
+    };
+    const deleteMessage = () => isDeleteRefused ? refused() : Promise.resolve(void actions.push("deleted"));
 
     const message = {
         inGuild: () => true,
@@ -101,13 +107,25 @@ function createMessage({attachments, isModerator = false}: FakeMessageOptions) {
     };
 
     // `delete` is added separately because the lint rules want every key quoted in an object that has a reserved word
-    return {message: {...message, "delete": () => Promise.resolve(void actions.push("deleted"))}, actions, logged};
+    return {message: {...message, "delete": deleteMessage}, actions, logged};
 }
 
 async function run(options: FakeMessageOptions) {
     const fake = createMessage(options);
     await detector.execute(fake.message as never);
     return fake;
+}
+
+/** Runs the detector with `console.error` silenced, for cases where the detector is expected to log a failure. */
+async function runQuietly(options: FakeMessageOptions) {
+    const realError = console.error;
+    console.error = () => {};
+    try {
+        return await run(options);
+    }
+    finally {
+        console.error = realError;
+    }
 }
 
 beforeEach(() => {
@@ -144,8 +162,27 @@ test("in enforce mode a scam image is removed, its author is timed out and warne
 
     expect(actions).toEqual(["deleted", "timed out for 60 minutes", "warned in account issues"]);
     expect(logged.map(entry => entry.title)).toEqual(["Scam Image Detected", "Member Timed Out"]);
-    expect(logged[0].fields.Action).toBe("Message removed");
+    expect(logged[0].fields.Action).toBe("Message removed, member timed out");
     expect(logged[0].description).not.toContain("Jump to message");
+});
+
+test("when Discord refuses the timeout, the mod log says so and does not claim the member was timed out", async () => {
+    settingsStore.set(GUILD, {modlog: "modlog", scamimages: "enforce"});
+    const {actions, logged} = await runQuietly({attachments: [{name: "scam.jpg"}], isTimeoutRefused: true});
+
+    expect(actions).toEqual(["deleted", "warned in account issues"]);
+    expect(logged.map(entry => entry.title)).toEqual(["Scam Image Detected"]);
+    expect(logged[0].fields.Action).toBe("Message removed, member could not be timed out");
+});
+
+test("when Discord refuses the delete, the mod log says so and links to the message that is still there", async () => {
+    settingsStore.set(GUILD, {modlog: "modlog", scamimages: "enforce"});
+    const {actions, logged} = await runQuietly({attachments: [{name: "scam.jpg"}], isDeleteRefused: true});
+
+    expect(actions).toEqual(["timed out for 60 minutes", "warned in account issues"]);
+    expect(logged.map(entry => entry.title)).toEqual(["Scam Image Detected", "Member Timed Out"]);
+    expect(logged[0].fields.Action).toBe("Message could not be removed, member timed out");
+    expect(logged[0].description).toContain("Jump to message");
 });
 
 test("enforce mode still acts when the guild has no mod log", async () => {
@@ -205,10 +242,7 @@ test("only the first four images of a message are read", async () => {
 
 test("an image that cannot be downloaded or read is skipped, and the rest are still checked", async () => {
     settingsStore.set(GUILD, {modlog: "modlog", scamimages: "enforce"});
-    const realError = console.error;
-    console.error = () => {};
-    const {actions} = await run({attachments: [{name: "missing.jpg"}, {name: "broken.jpg"}, {name: "scam.jpg"}]});
-    console.error = realError;
+    const {actions} = await runQuietly({attachments: [{name: "missing.jpg"}, {name: "broken.jpg"}, {name: "scam.jpg"}]});
 
     expect(downloads).toEqual(["missing.jpg", "broken.jpg", "scam.jpg"]);
     expect(actions[0]).toBe("deleted");
