@@ -42,6 +42,13 @@ export interface GuildSettings {
     detectspam?: boolean;
     modlog?: string;
     joinleave?: string;
+    scamimages?: "log" | "enforce";
+}
+
+export interface ScamImageStats {
+    imagesScanned: number;
+    messagesFlagged: number;
+    longestWait: number; // milliseconds
 }
 
 export interface UserInstallNotice {

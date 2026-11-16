@@ -1,6 +1,8 @@
+import path from "node:path";
 import {EmbedBuilder, PermissionFlagsBits, type GuildTextBasedChannel, type Message} from "discord.js";
 import type {GuildSettings} from "../types";
 import Colors from "./colors";
+import type {FlaggedImage} from "./scamimages";
 
 
 const ACCOUNT_ISSUES_CHANNEL_ID = "1465301762821853204";
@@ -98,4 +100,23 @@ export async function logMemberAction(modlog: GuildTextBasedChannel, message: Me
         .addFields({name: "Reason", value: reason})
         .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
     await modlog.send({embeds: [embed]});
+}
+
+/**
+ * Logs an image that matched the crypto scam, with the image itself and the terms that were found in it.
+ * `wasRemoved` says whether the message was deleted, or left alone because the guild only logs matches.
+ */
+export async function logScamImage(modlog: GuildTextBasedChannel, message: Message<true>, image: FlaggedImage, wasRemoved: boolean) {
+    // The log gets its own copy of the image, because the original disappears with the message
+    const fileName = `flagged${path.extname(image.name) || ".png"}`;
+    const embed = new EmbedBuilder().setColor(Colors.Info)
+        .setAuthor({name: "Scam Image Detected", iconURL: message.author.displayAvatarURL()})
+        .setDescription(`Image sent by ${message.author.username} in <#${message.channel.name}>` + (wasRemoved ? "" : `\n\n[Jump to message](${message.url})`))
+        .addFields(
+            {name: "Matched Terms", value: image.terms.join(", ")},
+            {name: "Action", value: wasRemoved ? "Message removed" : "None (log only)"},
+        )
+        .setImage(`attachment://${fileName}`)
+        .setFooter({text: `ID: ${message.author.id}`}).setTimestamp(message.createdTimestamp);
+    await modlog.send({embeds: [embed], files: [{attachment: image.contents, name: fileName}]});
 }

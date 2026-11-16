@@ -2,7 +2,7 @@ import path from "path";
 import {fileURLToPath} from "url";
 import Keyv from "keyv";
 import Sqlite from "@keyv/sqlite";
-import type {BdWebAddon, CommandStats, GuildSettings, Tag} from "./types";
+import type {BdWebAddon, CommandStats, GuildSettings, ScamImageStats, Tag} from "./types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,4 +20,5 @@ export const selfrolesDB = new Keyv<string[]>(sqliteStore, {namespace: "selfrole
 export const voicetextDB = new Keyv<string>(sqliteStore, {namespace: "voicetext"});
 export const statsDB = new Keyv<CommandStats>(sqliteStore, {namespace: "stats"});
 export const tagsDB = new Keyv<Record<string, Tag>>(sqliteStore, {namespace: "tags"});
+export const scamImageStatsDB = new Keyv<ScamImageStats>(sqliteStore, {namespace: "scamimages"});
 export const userInstallNotices = new Keyv(sqliteStore, {namespace: "userInstallNotices"});
