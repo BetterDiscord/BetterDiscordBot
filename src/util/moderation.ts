@@ -107,10 +107,25 @@ export async function logMemberAction(modlog: GuildTextBasedChannel, message: Me
     await modlog.send({embeds: [embed]});
 }
 
-/** What happened when a filter tried to remove a message and time its author out */
+/**
+ * Tells the author, in a direct message, why their message was removed and that their account may be compromised.
+ * Returns whether the message was delivered, which it is not when the author has direct messages turned off.
+ */
+export async function notifyCompromisedAccount(message: Message<true>): Promise<boolean> {
+    try {
+        await message.author.send({content: `Your message in **${message.guild.name}** was removed because it contained an image that looks like a known crypto scam. Your account may be compromised! Change your password and remove any unfamiliar account connections and authorized apps.`});
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+
+/** What happened when a filter tried to remove a message, time its author out and notify them */
 export interface RemovalOutcome {
     wasDeleted: boolean;
     didTimeout: boolean;
+    wasNotified: boolean;
 }
 
 /**
@@ -120,7 +135,11 @@ export interface RemovalOutcome {
 export async function logScamImage(modlog: GuildTextBasedChannel, message: Message<true>, image: FlaggedImage, outcome?: RemovalOutcome) {
     // A failed step is spelled out, because otherwise the only sign of it is in the bot's console
     const action = outcome
-        ? `${outcome.wasDeleted ? "Message removed" : "Message could not be removed"}, ${outcome.didTimeout ? "member timed out" : "member could not be timed out"}`
+        ? [
+            outcome.wasDeleted ? "Message removed" : "Message could not be removed",
+            outcome.didTimeout ? "member timed out" : "member could not be timed out",
+            outcome.wasNotified ? "member notified" : "member could not be notified",
+        ].join(", ")
         : "None (log only)";
     const isMessageGone = outcome?.wasDeleted ?? false;
 

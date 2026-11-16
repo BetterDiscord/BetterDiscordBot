@@ -49,11 +49,12 @@ interface FakeMessageOptions {
     isModerator?: boolean;
     isDeleteRefused?: boolean;
     isTimeoutRefused?: boolean;
+    hasDirectMessagesOff?: boolean;
 }
 
 const defaultAttachment = {contentType: "image/jpeg", size: 9_000, width: 450, height: 300};
 
-function createMessage({attachments, isModerator = false, isDeleteRefused = false, isTimeoutRefused = false}: FakeMessageOptions) {
+function createMessage({attachments, isModerator = false, isDeleteRefused = false, isTimeoutRefused = false, hasDirectMessagesOff = false}: FakeMessageOptions) {
     const actions: string[] = [];
     const logged: Array<{title: string; fields: Record<string, string>; description: string; fileNames: string[];}> = [];
 
@@ -74,6 +75,7 @@ function createMessage({attachments, isModerator = false, isDeleteRefused = fals
         isTextBased: () => true,
         send: () => Promise.resolve(void actions.push("warned in account issues")),
     };
+    const directMessages: string[] = [];
     const refused = () => Promise.reject(new Error("Missing Permissions"));
     const member = {
         timeout: (duration: number) => isTimeoutRefused ? refused() : Promise.resolve(void actions.push(`timed out for ${duration / 60_000} minutes`)),
@@ -91,10 +93,17 @@ function createMessage({attachments, isModerator = false, isDeleteRefused = fals
             displayName: "Scam Mer",
             tag: "scammer#0",
             toString: () => "<@user1>",
+            send: ({content}: {content: string;}) => {
+                if (hasDirectMessagesOff) return refused();
+                directMessages.push(content);
+                actions.push("sent a direct message");
+                return Promise.resolve();
+            },
             displayAvatarURL: () => "https://example.com/avatar.png",
         },
         guild: {
             id: GUILD,
+            name: "Test Server",
             members: {cache: new Collection([["user1", member]])},
             channels: {cache: new Collection<string, unknown>([["modlog", modlog], [ACCOUNT_ISSUES_CHANNEL, accountIssues]])},
         },
@@ -107,7 +116,7 @@ function createMessage({attachments, isModerator = false, isDeleteRefused = fals
     };
 
     // `delete` is added separately because the lint rules want every key quoted in an object that has a reserved word
-    return {message: {...message, "delete": deleteMessage}, actions, logged};
+    return {message: {...message, "delete": deleteMessage}, actions, logged, directMessages};
 }
 
 async function run(options: FakeMessageOptions) {
@@ -160,9 +169,9 @@ test("in enforce mode a scam image is removed, its author is timed out and warne
     settingsStore.set(GUILD, {modlog: "modlog", scamimages: "enforce"});
     const {actions, logged} = await run({attachments: [{name: "scam.jpg"}]});
 
-    expect(actions).toEqual(["deleted", "timed out for 60 minutes", "warned in account issues"]);
+    expect(actions).toEqual(["deleted", "timed out for 60 minutes", "warned in account issues", "sent a direct message"]);
     expect(logged.map(entry => entry.title)).toEqual(["Scam Image Detected", "Member Timed Out"]);
-    expect(logged[0].fields.Action).toBe("Message removed, member timed out");
+    expect(logged[0].fields.Action).toBe("Message removed, member timed out, member notified");
     expect(logged[0].description).not.toContain("Jump to message");
 });
 
@@ -170,18 +179,43 @@ test("when Discord refuses the timeout, the mod log says so and does not claim t
     settingsStore.set(GUILD, {modlog: "modlog", scamimages: "enforce"});
     const {actions, logged} = await runQuietly({attachments: [{name: "scam.jpg"}], isTimeoutRefused: true});
 
-    expect(actions).toEqual(["deleted", "warned in account issues"]);
+    expect(actions).toEqual(["deleted", "warned in account issues", "sent a direct message"]);
     expect(logged.map(entry => entry.title)).toEqual(["Scam Image Detected"]);
-    expect(logged[0].fields.Action).toBe("Message removed, member could not be timed out");
+    expect(logged[0].fields.Action).toBe("Message removed, member could not be timed out, member notified");
+});
+
+test("in enforce mode the author gets a direct message that names the server and says what to do", async () => {
+    settingsStore.set(GUILD, {modlog: "modlog", scamimages: "enforce"});
+    const {directMessages} = await run({attachments: [{name: "scam.jpg"}]});
+
+    expect(directMessages.length).toBe(1);
+    expect(directMessages[0]).toContain("**Test Server**");
+    expect(directMessages[0]).toContain("Change your password");
+});
+
+test("in log mode the author gets no direct message", async () => {
+    settingsStore.set(GUILD, {modlog: "modlog", scamimages: "log"});
+    const {directMessages} = await run({attachments: [{name: "scam.jpg"}]});
+
+    expect(directMessages).toEqual([]);
+});
+
+test("when the author has direct messages turned off, the rest still happens and the mod log says so", async () => {
+    settingsStore.set(GUILD, {modlog: "modlog", scamimages: "enforce"});
+    const {actions, logged} = await run({attachments: [{name: "scam.jpg"}], hasDirectMessagesOff: true});
+
+    expect(actions).toEqual(["deleted", "timed out for 60 minutes", "warned in account issues"]);
+    expect(logged[0].fields.Action).toBe("Message removed, member timed out, member could not be notified");
+    expect(logged.map(entry => entry.title)).toEqual(["Scam Image Detected", "Member Timed Out"]);
 });
 
 test("when Discord refuses the delete, the mod log says so and links to the message that is still there", async () => {
     settingsStore.set(GUILD, {modlog: "modlog", scamimages: "enforce"});
     const {actions, logged} = await runQuietly({attachments: [{name: "scam.jpg"}], isDeleteRefused: true});
 
-    expect(actions).toEqual(["timed out for 60 minutes", "warned in account issues"]);
+    expect(actions).toEqual(["timed out for 60 minutes", "warned in account issues", "sent a direct message"]);
     expect(logged.map(entry => entry.title)).toEqual(["Scam Image Detected", "Member Timed Out"]);
-    expect(logged[0].fields.Action).toBe("Message could not be removed, member timed out");
+    expect(logged[0].fields.Action).toBe("Message could not be removed, member timed out, member notified");
     expect(logged[0].description).toContain("Jump to message");
 });
 
@@ -189,7 +223,7 @@ test("enforce mode still acts when the guild has no mod log", async () => {
     settingsStore.set(GUILD, {scamimages: "enforce"});
     const {actions, logged} = await run({attachments: [{name: "scam.jpg"}]});
 
-    expect(actions).toEqual(["deleted", "timed out for 60 minutes", "warned in account issues"]);
+    expect(actions).toEqual(["deleted", "timed out for 60 minutes", "warned in account issues", "sent a direct message"]);
     expect(logged).toEqual([]);
 });
 

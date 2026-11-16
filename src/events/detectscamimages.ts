@@ -1,7 +1,7 @@
 import {Events, Message} from "discord.js";
 import {guildDB} from "../db";
 import type {GuildSettings} from "../types";
-import {deleteMessage, getModlogChannel, isFilterable, logMemberAction, logScamImage, timeoutAuthor, warnCompromisedAccount, type RemovalOutcome} from "../util/moderation";
+import {deleteMessage, getModlogChannel, isFilterable, logMemberAction, logScamImage, notifyCompromisedAccount, timeoutAuthor, warnCompromisedAccount, type RemovalOutcome} from "../util/moderation";
 import {recordScan, scanImages} from "../util/scamimages";
 
 
@@ -15,12 +15,14 @@ function hasKnownScamShape(message: Message<true>): boolean {
     return message.attachments.size === 4 && message.attachments.every(a => sketchyImageRegex.test(a.url));
 }
 
-/** Removes the message, times its author out and warns them. Returns which of the first two worked. */
+/** Removes the message, times its author out, and warns them in the server and in a direct message. Returns which steps worked. */
 async function removeScam(message: Message<true>): Promise<RemovalOutcome> {
     const wasDeleted = await deleteMessage(message, "scam image");
     const didTimeout = await timeoutAuthor(message, TIMEOUT_DURATION, TIMEOUT_REASON);
     await warnCompromisedAccount(message);
-    return {wasDeleted, didTimeout};
+
+    const wasNotified = await notifyCompromisedAccount(message);
+    return {wasDeleted, didTimeout, wasNotified};
 }
 
 export default {
