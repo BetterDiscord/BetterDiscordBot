@@ -43,14 +43,19 @@ const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".ts"
 
 for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
-    const event = await import(pathToFileURL(filePath).href) as {default: EventModule;};
+    const event = await import(pathToFileURL(filePath).href) as {default: EventModule | EventModule[];};
     // Handle both default and named exports
-    const eventData = event.default || event;
-    if (eventData.once) {
-        client.once(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
-    }
-    else {
-        client.on(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
+    const exported = event.default || event;
+
+    // A file can export one event or a list of them
+    const events = Array.isArray(exported) ? exported : [exported];
+    for (const eventData of events) {
+        if (eventData.once) {
+            client.once(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
+        }
+        else {
+            client.on(eventData.name, (...args: Parameters<typeof eventData.execute>) => eventData.execute(...args));
+        }
     }
 }
 
