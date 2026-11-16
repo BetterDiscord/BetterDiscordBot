@@ -46,6 +46,10 @@ export default {
 
 
     async role(interaction: RoleSelectMenuInteraction<"cached">) {
+        // Command permissions do not apply to components, so anyone who can see the prompt could answer it.
+        const invokerId = interaction.message.interactionMetadata?.user.id;
+        if (interaction.user.id !== invokerId) return await interaction.reply(Messages.error("Only the person who ran this command can choose the roles.", {ephemeral: true}));
+
         const roleIds = [...interaction.roles.keys()];
 
         const start = Date.now();

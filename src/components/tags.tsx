@@ -21,9 +21,9 @@ export function Tag(tag: Tag) {
     return container as ContainerComponentData;
 }
 
-export function UpdateTagModal(tag: AtLeast<Tag, "name">) {
+export function UpdateTagModal({customId, ...tag}: AtLeast<Tag, "name"> & {customId: string;}) {
     const isUpdating = !!tag.content;
-    return (<Modal customId="tagmodal" title={`${isUpdating ? "Update" : "Create"} Tag: ${tag.name}`}>
+    return (<Modal customId={customId} title={`${isUpdating ? "Update" : "Create"} Tag: ${tag.name}`}>
         <ModalLabel label="Tag Title">
             <TextInput
                 customId="title"

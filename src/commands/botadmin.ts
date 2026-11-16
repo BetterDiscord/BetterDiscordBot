@@ -60,7 +60,8 @@ export default {
 
 
     async send(interaction: ChatInputCommandInteraction, target: PartialTextBasedChannelFields) {
-        const modal = new ModalBuilder().setTitle("Message To Send").setCustomId("botadmin-send")
+        const customId = `botadmin-send-${interaction.id}`;
+        const modal = new ModalBuilder().setTitle("Message To Send").setCustomId(customId)
             .addComponents(
                 new ActionRowBuilder<TextInputBuilder>()
                     .addComponents(
@@ -74,7 +75,7 @@ export default {
         await interaction.showModal(modal);
 
         try {
-            const modalInteraction = await interaction.awaitModalSubmit({time: 60_000});
+            const modalInteraction = await interaction.awaitModalSubmit({time: 60_000, filter: i => i.customId === customId});
             const message = modalInteraction.fields.getTextInputValue("message");
             try {
                 await target.send(message);

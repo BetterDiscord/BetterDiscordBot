@@ -112,10 +112,11 @@ export default {
     async showTagModal(interaction: ChatInputCommandInteraction<"cached">, tag: AtLeast<Tag, "name">) {
         const isUpdating = !!tag.content;
 
-        await interaction.showModal(<UpdateTagModal {...tag} /> as ModalComponentData);
+        const customId = `tagmodal-${interaction.id}`;
+        await interaction.showModal(<UpdateTagModal {...tag} customId={customId} /> as ModalComponentData);
 
         try {
-            const modalInteraction = await interaction.awaitModalSubmit({time: msInMinute * 5});
+            const modalInteraction = await interaction.awaitModalSubmit({time: msInMinute * 5, filter: i => i.customId === customId});
             const title = modalInteraction.fields.getTextInputValue("title");
             const content = modalInteraction.fields.getTextInputValue("content");
             const thumbnailUrl = modalInteraction.fields.getTextInputValue("thumbnail");
