@@ -9,6 +9,7 @@ export default defineConfig(
     {
         rules: {
             "no-console": "off",
+            "new-cap": ["error", {capIsNew: false}], // for the components
             "@typescript-eslint/no-misused-promises": ["error", {checksVoidReturn: {arguments: false, returns: false}}],
         }
     },
