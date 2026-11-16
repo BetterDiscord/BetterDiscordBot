@@ -5,15 +5,18 @@ import type {CommandModule, EventModule} from "./types";
 import {pathToFileURL} from "node:url";
 
 
+// Discord has to approve an application for privileged intents, and logging in with an intent that is not approved
+// fails. The privileged intents are opt-in so the same code runs on a bot with the approval and on one without it.
+const messageIntentsEnabled = process.env.BOT_MESSAGE_INTENTS === "true";
+const membersIntentsEnabled = process.env.BOT_MEMBERS_INTENTS === "true";
+
 // Create a new client instance
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
-        // GatewayIntentBits.GuildMessages,
-        // GatewayIntentBits.MessageContent,
-        // GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
-        // GatewayIntentBits.DirectMessages
+        ...(messageIntentsEnabled ? [GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.DirectMessages] : []),
+        ...(membersIntentsEnabled ? [GatewayIntentBits.GuildMembers] : []),
     ],
     partials: [
         Partials.Channel
