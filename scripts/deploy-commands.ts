@@ -51,7 +51,7 @@ if (!shouldClear) {
     const commands = [];
     const ownerCommands = [];
     const commandsPath = path.join(__dirname, "..", "src", "commands");
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".ts") || file.endsWith(".tsx"));
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".ts"));
 
     for (const file of commandFiles) {
         const filePath = path.join(commandsPath, file);

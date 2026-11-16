@@ -15,12 +15,5 @@ export default defineConfig(
     },
     {
         ignores: ["**/debug/**", "**/node_modules/**"]
-    },
-    {
-        files: ["**/*.tsx"],
-        rules: {
-            "@typescript-eslint/no-unsafe-assignment": "off",
-            "@typescript-eslint/no-unsafe-argument": "off"
-        }
     }
 );
