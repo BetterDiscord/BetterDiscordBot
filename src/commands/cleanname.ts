@@ -100,7 +100,7 @@ export default {
         infoEmbed.setFooter({text: "Completed at"});
         infoEmbed.setTimestamp(finish);
 
-        await interaction.update({embeds: [infoEmbed]});
+        await interaction.editReply({embeds: [infoEmbed]});
     },
 
 
