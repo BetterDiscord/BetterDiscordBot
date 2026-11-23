@@ -6,7 +6,7 @@ import {deleteMessage, getModlogChannel, isFilterable, logMemberAction, logRemov
 const fakeDiscordRegex = new RegExp(`([a-zA-Z-\\.]+)?d[il][il]?scorr?(cl|[ldb])([a-zA-Z-\\.]+)?\\.(com|net|app|gift|ru|uk)`, "ig");
 const okayDiscordRegex = new RegExp(`([a-zA-Z-\\.]+\\.)?discord((?:app)|(?:status))?\\.(com|net|app)`, "i");
 const fakeSteamRegex = new RegExp(`str?e[ea]?mcomm?m?un[un]?[un]?[tl]?[il][tl]?ty\\.(com|net|ru|us)`, "ig");
-const sketchyRuRegex = new RegExp(`([a-zA-Z-\\.]+).ru.com`, "ig");
+const sketchyRuRegex = new RegExp(`([a-zA-Z-\\.]+).ru.com`, "i");
 
 
 export default {
